@@ -2,8 +2,11 @@
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
+import { _t } from "@web/core/l10n/translation";
 
-const { Component, onWillStart } = owl;
+const { Component, onWillStart, useRef, onMounted } = owl;
+import { loadBundle } from "@web/core/assets";
+import { useEnv } from "@web/env";
 
 /**
  * Custom Many2OneAutocomplete widget for Lark Tasklist selection
@@ -93,4 +96,5 @@ export const many2oneAutocomplete = {
     }),
 };
 
+// Register the component in the field registry
 registry.category("fields").add("many2one_autocomplete", many2oneAutocomplete);

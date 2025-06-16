@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<templates id="template" xml:space="preserve">
+<templates xml:space="preserve">
     <t t-name="lark_project_sync.Many2OneAutocomplete" owl="1">
+        <div class="o_many2one_autocomplete">
         <div class="position-relative">
             <!-- Search Input -->
             <div class="input-group">
