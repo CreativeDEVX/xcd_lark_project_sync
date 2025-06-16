@@ -521,6 +521,9 @@ class LarkAPI(models.Model):
                 is_completed = task_data.get('completed', False)
                 task_name = task_data.get('summary', 'Unnamed Task')
                 
+                # Get the Odoo user ID if assignee exists
+                odoo_user_id = self._find_odoo_user_id(task_data.get('assignee_id'))
+                
                 values = {
                     'project_id': project_id,
                     'name': task_name,
@@ -530,7 +533,7 @@ class LarkAPI(models.Model):
                     'lark_etag': task_data.get('etag'),
                     'lark_updated': fields.Datetime.now(),
                     'date_deadline': due_date or False,
-                    'user_id': self._find_odoo_user_id(task_data.get('assignee_id')),
+                    'user_ids': [(6, 0, [odoo_user_id])] if odoo_user_id else False,
                     'stage_id': self._get_task_stage_id(project_id, is_completed),
                     'date_last_stage_update': fields.Datetime.now() if is_completed else False,
                 }
@@ -861,6 +864,20 @@ class LarkAPI(models.Model):
                 existing.write(vals)
             else:
                 self.env['project.task'].create(vals)
+
+    def action_open_lark_tasks(self):
+        self.ensure_one()
+        return {
+            'name': _('Lark Tasks'),
+            'type': 'ir.actions.act_window',
+            'res_model': 'lark.task',
+            'view_mode': 'list,form',
+            'domain': [('id', '!=', False)],  # Show all tasks for now
+            'context': {
+                'search_default_group_by_project': True
+            },
+            'target': 'current',
+        }
 
     def action_start_lark_oauth(self):
         """Redirect user to Lark OAuth authorization URL (new endpoint)."""
