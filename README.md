@@ -107,8 +107,8 @@ To manually sync tasks:
 ## Support
 
 For support, please contact:
-- Email: support@yourcompany.com
-- Website: https://www.yourcompany.com/support
+- Email: support@ycreativedev.co.th
+- Website: https://www.ycreativedev.co.th/support
 
 ## License
 

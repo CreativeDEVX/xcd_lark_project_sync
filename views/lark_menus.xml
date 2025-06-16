@@ -23,17 +23,6 @@
                 sequence="10"/>
         </menuitem>
         
-        <!-- Logs Submenu -->
-        <menuitem 
-            id="menu_lark_logs" 
-            name="Logs" 
-            sequence="200">
-            
-            <menuitem 
-                id="menu_lark_api_logs" 
-                name="API Logs" 
-                action="action_lark_api_log" 
-                sequence="10"/>
-        </menuitem>
+        
     </menuitem>
 </odoo>

@@ -490,9 +490,10 @@ class LarkAPI(models.Model):
         _logger.info("Project '%s' is linked to Lark tasklist: %s", project.name, project.lark_id)
             
         for idx, task_data in enumerate(tasks_data or [], 1):
-            task_id = task_data.get('id')
+            # Use ID if available, otherwise use GUID
+            task_id = task_data.get('id') or task_data.get('guid')
             if not task_id:
-                _logger.warning("Skipping task at index %d with no ID. Data: %s", idx, task_data)
+                _logger.warning("Skipping task at index %d with no ID or GUID. Data: %s", idx, task_data)
                 continue
                 
             try:
