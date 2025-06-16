@@ -619,16 +619,8 @@ class LarkAPI(models.Model):
         except Exception as e:
             _logger.error("Error fetching tasks for tasklist %s: %s", tasklist_guid, str(e), exc_info=True)
             return []
-            tasks = self._get_paginated_results(tasks_url, params)
-            all_tasks.extend(tasks)
             
-            _logger.info("Fetched %d tasks from tasklist %s", len(tasks), tasklist_guid)
-            
-        except Exception as e:
-            _logger.error("Error fetching tasks for tasklist %s: %s", tasklist_guid, str(e))
-            raise UserError(_("Error fetching tasks from Lark: %s") % str(e))
-            
-        return all_tasks
+        return tasks
 
     def _find_odoo_user_id(self, lark_user_id):
         """Find Odoo user ID from Lark user ID"""

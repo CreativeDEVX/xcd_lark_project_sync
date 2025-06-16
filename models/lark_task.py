@@ -16,6 +16,13 @@ class LarkTask(models.Model):
     _check_company_auto = True
 
     # Basic Fields
+    task_sequence = fields.Char(
+        string='Task Number',
+        readonly=True,
+        copy=False,
+        index=True,
+        help='Auto-generated task sequence number'
+    )
     name = fields.Char(
         string='Task Name', 
         required=True, 
@@ -304,11 +311,39 @@ class LarkTask(models.Model):
         # Set current user as assignee if not provided
         if 'assignee_id' not in vals:
             vals['assignee_id'] = self.env.uid
+        
+        # Generate task sequence if not provided
+        if not vals.get('task_sequence') and vals.get('name'):
+            # Get first 3 characters of the task name, convert to uppercase, and remove any non-alphabetic characters
+            import re
+            prefix = re.sub(r'[^a-zA-Z]', '', vals['name'])[:3].upper()
+            
+            # Ensure we have exactly 3 characters (pad with X if needed)
+            if len(prefix) < 3:
+                prefix = prefix.ljust(3, 'X')
+            
+            # Get or create the sequence
+            sequence_code = f'lark.task.{prefix.lower()}'
+            sequence = self.env['ir.sequence'].search([('code', '=', sequence_code)], limit=1)
+            
+            if not sequence:
+                sequence = self.env['ir.sequence'].create({
+                    'name': f'Lark Task {prefix} Sequence',
+                    'code': sequence_code,
+                    'prefix': f'{prefix}-',
+                    'padding': 4,
+                    'number_next_actual': 1,
+                    'number_increment': 1,
+                    'implementation': 'standard',
+                })
+            
+            # Generate the sequence number
+            vals['task_sequence'] = sequence.next_by_id()
             
         task = super(LarkTask, self).create(vals)
         
         # Log creation
-        _logger.info(f'Created new Lark Task: {task.name} (ID: {task.id})')
+        _logger.info(f'Created new Lark Task: {task.name} (ID: {task.id}, Sequence: {task.task_sequence})')
         
         return task
     
