@@ -1,0 +1,177 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- List View -->
+    <record id="view_lark_api_list" model="ir.ui.view">
+        <field name="name">lark.api.list</field>
+        <field name="model">lark.api</field>
+        <field name="arch" type="xml">
+            <list string="Lark API Configurations">
+                <field name="app_id" string="Lark App ID"/>
+                <field name="token_expire" string="Token Expiry"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- Form View -->
+    <record id="view_lark_api_form" model="ir.ui.view">
+        <field name="name">lark.api.form</field>
+        <field name="model">lark.api</field>
+        <field name="arch" type="xml">
+            <form string="Lark API">
+                <header>
+                    <button name="sync_projects_from_lark" string="Sync Tasklists" type="object" class="oe_highlight"/>
+                    <button name="sync_tasks_from_lark" string="Sync Tasks" type="object" class="oe_highlight"/>
+                    <button name="debug_lark_tasklists" string="Debug Lark Tasklists" type="object" class="oe_highlight"/>
+                    <button name="action_open_related_documents"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-folder-open"
+                            string="Related Documents"/>
+                    <button name="action_open_lark_tasklists"
+                            type="object"
+                            class="oe_stat_button"
+                            icon="fa-list"
+                            string="Tasklist From Lark"/>
+                </header>
+                <sheet>
+                    <group>
+                        <group>
+                            <field name="app_id" string="Lark App ID"/>
+                            <field name="app_secret" string="Lark App Secret" password="True"/>
+                            <field name="redirect_uri" string="Redirect URI" help="The URL where users will be redirected after OAuth authentication"/>
+                            <field name="is_token_valid" invisible="1"/>
+                            <div class="oe_button_box" name="button_box">
+                                <button name="action_get_access_token" 
+                                        type="object" 
+                                        class="oe_stat_button" 
+                                        icon="fa-key" 
+                                        string="Get Access Token"
+                                        invisible="is_token_valid"/>
+                                <button name="action_get_access_token" 
+                                        type="object" 
+                                        class="oe_stat_button" 
+                                        icon="fa-check" 
+                                        string="Token is Active" 
+                                        style="color: #28a745;"
+                                        invisible="not is_token_valid"/>
+                            </div>
+                        </group>
+                        <group>
+                            <field name="user_access_token" string="User Access Token"/>
+                            <field name="token_expire" string="Token Expires On" readonly="1"/>
+                            <field name="token_remaining_time" string="Token Remaining" readonly="1"/>
+                        </group>
+                    </group>
+                    <group>
+                        <field name="tasklist_data" widget="text" readonly="1" string="Lark Tasklists (JSON)"/>
+                    </group>
+                    <group>
+                        <button name="action_start_lark_oauth" string="Get Access Token via Lark OAuth" type="object" class="oe_highlight"/>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action to open Lark API configurations -->
+    <record id="action_lark_api" model="ir.actions.act_window">
+        <field name="name">Lark API Configurations</field>
+        <field name="res_model">lark.api</field>
+        <field name="view_mode">list,form</field>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No Lark API configurations found. Let's create one!
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Item -->
+    <menuitem id="menu_lark_api_config" 
+              name="API Configurations" 
+              parent="lark_project_sync.menu_lark_root"
+              action="action_lark_api"
+              sequence="10"/>
+
+    <record id="view_lark_api_related_document_list" model="ir.ui.view">
+        <field name="name">lark.api.related.document.list</field>
+        <field name="model">mail.message</field>
+        <field name="arch" type="xml">
+            <list>
+                <field name="create_date"/>
+                <field name="subject"/>
+                <field name="author_id"/>
+                <field name="model"/>
+                <field name="res_id"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="action_lark_api_related_documents" model="ir.actions.act_window">
+        <field name="name">Related Documents</field>
+        <field name="res_model">mail.message</field>
+        <field name="view_mode">list,form</field>
+        <field name="domain">[('model', '=', 'lark.api'), ('res_id', 'in', active_ids)]</field>
+    </record>
+
+    <record id="view_lark_api_log_list" model="ir.ui.view">
+        <field name="name">view.lark.api.log.list</field>
+        <field name="model">lark.api.log</field>
+        <field name="arch" type="xml">
+            <list string="Lark API Log" decoration-success="response_type == 'success'" decoration-danger="response_type == 'fail'">
+                <field name="name"/>
+                <field name="api_link"/>
+                <field name="related_model"/>
+                <field name="create_date"/>
+                <field name="response_type"/>
+            </list>
+        </field>
+    </record>
+
+    <record id="view_lark_api_log_form" model="ir.ui.view">
+        <field name="name">view.lark.api.log.form</field>
+        <field name="model">lark.api.log</field>
+        <field name="arch" type="xml">
+            <form string="Lark API Log Form">
+                <header>
+                    <field name="response_type" widget="statusbar"/>
+                </header>
+                <sheet>
+                    <group string="Sync Detail">
+                        <field name="name" readonly="1"/>
+                        <field name="create_date" readonly="1"/>
+                        <field name="api_link" readonly="1"/>
+                        <field name="related_model" readonly="1"/>
+                    </group>
+                    <group>
+                        <group string="Request Detail">
+                            <field name="request_method" readonly="1"/>
+                            <field name="request_param" style="font-family: monospace;" readonly="1"/>
+                        </group>
+                        <group string="Response Detail">
+                            <field name="response_data" style="font-family: monospace;" readonly="1"/>
+                        </group>
+                    </group>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="message_ids" widget="mail_thread" options='{"thread_level": 1}'/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_lark_api_log" model="ir.actions.act_window">
+        <field name="name">Lark API Log</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">lark.api.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="view_id" ref="view_lark_api_log_list"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                Create Lark API Log
+            </p>
+        </field>
+    </record>
+
+    <menuitem id="menu_lark_api_log" action="action_lark_api_log" parent="lark_project_sync.menu_lark_root" sequence="500"/>
+</odoo>

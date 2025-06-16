@@ -1,0 +1,5 @@
+id,name,model_id:id,group_id:id,perm_read,perm_write,perm_create,perm_unlink
+access_lark_api,access_lark_api,model_lark_api,base.group_system,1,1,1,1
+access_lark_tasklist_user,Lark Tasklist user,model_lark_tasklist,base.group_user,1,0,0,0
+access_lark_api_log_user,Lark API Log user,model_lark_api_log,base.group_user,1,0,0,0
+access_lark_api_log_admin,Lark API Log admin,model_lark_api_log,base.group_system,1,1,1,1

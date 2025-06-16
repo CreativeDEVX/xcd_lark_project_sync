@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="project_view_form_inherit_lark" model="ir.ui.view">
+        <field name="name">project.project.form.inherit.lark</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.edit_project"/>
+        <field name="arch" type="xml">
+            <!-- Add Lark Tasklist Info to Header -->
+            <header>
+                <button name="action_open_linked_tasklist" 
+                        string="View Linked Tasklist" 
+                        type="object" 
+                        class="oe_highlight"
+                        invisible="not lark_tasklist_id"
+                        groups="base.group_user"/>
+                <button name="%(lark_project_sync.action_lark_link_project_wizard)d"
+                        string="Link to Lark Tasklist"
+                        type="action"
+                        class="oe_highlight"
+                        invisible="lark_tasklist_id"
+                        groups="base.group_user"/>
+                <button name="create_in_lark" 
+                        string="Push to Lark" 
+                        type="object" 
+                        class="oe_highlight"
+                        invisible="lark_tasklist_id"
+                        groups="base.group_user"/>
+            </header>
+            
+            <!-- Add Lark Info to Project Form -->
+            <div name="button_box" position="inside">
+                <div class="oe_button_box" name="button_box" groups="base.group_user">
+                    <button name="action_open_linked_tasklist" 
+                            type="object" 
+                            class="oe_stat_button"
+                            invisible="not lark_tasklist_id">
+                        <field name="lark_tasklist_id" widget="statinfo" 
+                               string="Linked Tasklist" 
+                               options='{"id": "lark_tasklist_id"}'/>
+                        <field name="lark_id" invisible="1"/>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- Add Lark Info to Project Settings -->
+            <page name="settings" position="inside">
+                <group string="Lark Integration" invisible="not lark_tasklist_id">
+                    <group>
+                        <label for="lark_tasklist_id" string="Linked Tasklist"/>
+                        <div class="o_row">
+                            <field name="lark_tasklist_id" nolabel="1" class="oe_inline" options="{'no_open': True, 'no_create': True}"/>
+                            <button name="action_open_linked_tasklist" 
+                                    type="object" 
+                                    class="oe_inline"
+                                    icon="fa-external-link"
+                                    invisible="not lark_tasklist_id"
+                                    groups="base.group_user"/>
+                        </div>
+                        <field name="lark_id" string="Lark Tasklist ID" readonly="1" invisible="not lark_id"/>
+                        <field name="lark_parent_tasklist_guid" string="Parent Tasklist GUID" readonly="1" invisible="not lark_parent_tasklist_guid"/>
+                    </group>
+                </group>
+            </page>
+        </field>
+    </record>
+    
+    <!-- Kanban View Enhancements -->
+    <record id="view_project_kanban_inherit_lark" model="ir.ui.view">
+        <field name="name">project.project.kanban.inherit.lark</field>
+        <field name="model">project.project</field>
+        <field name="inherit_id" ref="project.view_project_kanban"/>
+        <field name="priority">100</field>
+        <field name="arch" type="xml">
+            <!-- Add Lark Tasklist info to the kanban card footer -->
+            <xpath expr="//kanban//templates/t[@t-name='card']/footer" position="inside">
+                <div class="mt-2" invisible="not lark_tasklist_id">
+                    <div class="d-flex align-items-center text-muted">
+                        <i class="fa fa-list-ul me-2" title="Lark Tasklist"/>
+                        <field name="lark_tasklist_id" widget="many2one_autocomplete" 
+                               options='{"no_open": true, "no_create": true}' 
+                               nolabel="1" 
+                               class="text-truncate"
+                               readonly="1"/>
+                    </div>
+                </div>
+            </xpath>
+        </field>
+    </record>
+</odoo> 

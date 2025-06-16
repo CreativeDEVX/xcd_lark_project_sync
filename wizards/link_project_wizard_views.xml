@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <record id="lark_link_project_wizard_form_view" model="ir.ui.view">
+        <field name="name">lark.link.project.wizard.form</field>
+        <field name="model">lark.link.project.wizard</field>
+        <field name="arch" type="xml">
+            <form string="Link to Lark Tasklist" class="o_lead_opportunity_form">
+                <header>
+                    <button name="action_link_project" 
+                            string="Link Selected Tasklist" 
+                            type="object" 
+                            class="btn-primary oe_highlight"
+                            invisible="not lark_tasklist_id"/>
+                    <button string="Cancel" 
+                            class="btn-secondary" 
+                            special="cancel"/>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>Link Project to Lark Tasklist</h1>
+                        <div class="o_hr_attendance_kiosk_backdrop">
+                            <div class="o_hr_attendance_kiosk_backdrop_container">
+                                <p class="text-muted">
+                                    Select a Lark tasklist to link with the project: <strong><field name="project_id" class="oe_inline"/></strong>
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <group class="mt16">
+                        <group string="Search and Select Tasklist" class="o_group_col_6">
+                            <field name="lark_tasklist_id" 
+                                   widget="many2one_autocomplete"
+                                   options='{
+                                       "no_open": true, 
+                                       "no_create": true,
+                                       "fields": ["name", "lark_guid", "creator_name", "created_at"],
+                                       "field_string": "name",
+                                       "field_relation": "lark.tasklist"
+                                   }'
+                                   placeholder="Search for a tasklist..."
+                                   class="mb16"/>
+                            
+                            <!-- Tasklist Preview -->
+                            <div class="bg-200 p-3 rounded" invisible="not lark_tasklist_id">
+                                <h4 class="mb-3">
+                                    <i class="fa fa-list-ul me-2"/>
+                                    <field name="tasklist_name"/>
+                                </h4>
+                                <div class="row">
+                                    <div class="col-6">
+                                        <div class="text-muted">Lark ID</div>
+                                        <field name="tasklist_guid" class="font-weight-bold"/>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted">Created By</div>
+                                        <field name="tasklist_creator" class="font-weight-bold"/>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted">Created On</div>
+                                        <field name="tasklist_created" class="font-weight-bold"/>
+                                    </div>
+                                    <div class="col-6">
+                                        <div class="text-muted">Last Updated</div>
+                                        <field name="tasklist_updated" class="font-weight-bold"/>
+                                    </div>
+                                </div>
+                            </div>
+                        </group>
+                        
+                        <group string="Help" class="o_group_col_6">
+                            <div class="alert alert-info">
+                                <h4><i class="fa fa-info-circle me-2"></i>About Linking Projects</h4>
+                                <p class="mb-2">
+                                    Linking a project to a Lark tasklist will:
+                                </p>
+                                <ul class="mb-0">
+                                    <li>Synchronize tasks between Odoo and Lark</li>
+                                    <li>Keep project status and deadlines in sync</li>
+                                    <li>Allow team collaboration across platforms</li>
+                                </ul>
+                                <div class="alert alert-warning mt-3 mb-0">
+                                    <i class="fa fa-exclamation-triangle me-2"></i>
+                                    <strong>Note:</strong> Only tasklists that aren't already linked to other projects are shown.
+                                </div>
+                            </div>
+                        </group>
+                    </group>
+                </sheet>
+            </form>
+        </field>
+    </record>
+
+    <record id="action_lark_link_project_wizard" model="ir.actions.act_window">
+        <field name="name">Link to Lark Tasklist</field>
+        <field name="res_model">lark.link.project.wizard</field>
+        <field name="view_mode">form</field>
+        <field name="target">new</field>
+        <field name="context">{'form_view_initial_mode': 'edit'}</field>
+    </record>
+</odoo> 

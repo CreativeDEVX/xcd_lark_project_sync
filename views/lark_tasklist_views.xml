@@ -1,0 +1,169 @@
+<odoo>
+    <!-- List View -->
+    <record id="view_lark_tasklist_list" model="ir.ui.view">
+        <field name="name">lark.tasklist.list</field>
+        <field name="model">lark.tasklist</field>
+        <field name="arch" type="xml">
+            <list string="Lark Tasklists" decoration-muted="is_linked" decoration-info="not is_linked">
+                <field name="name"/>
+                <field name="lark_guid" string="Lark ID"/>
+                <field name="creator_name" string="Created By"/>
+                <field name="member_count" string="Members" widget="statinfo"/>
+                <field name="created_at" string="Created" widget="date"/>
+                <field name="updated_at" string="Updated" widget="date"/>
+                <field name="is_linked" invisible="1"/>
+                <button name="action_open_in_lark" type="object" icon="fa-external-link" string="" class="oe_stat_button" help="Open in Lark"/>
+            </list>
+        </field>
+    </record>
+    
+    <!-- Search View -->
+    <record id="view_lark_tasklist_search" model="ir.ui.view">
+        <field name="name">lark.tasklist.search</field>
+        <field name="model">lark.tasklist</field>
+        <field name="arch" type="xml">
+            <search string="Search Tasklists">
+                <field name="name" string="Name" filter_domain="['|', ('name', 'ilike', self), ('lark_guid', 'ilike', self)]"/>
+                <filter string="Linked" name="linked" domain="[('is_linked', '=', True)]"/>
+                <filter string="Not Linked" name="not_linked" domain="[('is_linked', '=', False)]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Creator" name="group_by_creator" context="{'group_by':'creator_id'}"/>
+                    <filter string="Creation Date" name="group_by_creation" context="{'group_by':'create_date'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+    
+    <!-- Form View -->
+    <record id="view_lark_tasklist_form" model="ir.ui.view">
+        <field name="name">lark.tasklist.form</field>
+        <field name="model">lark.tasklist</field>
+        <field name="arch" type="xml">
+            <form string="Lark Tasklist">
+                <header>
+                    <button name="action_open_in_lark" type="object" string="Open in Lark" class="oe_highlight" icon="fa-external-link"/>
+                    <field name="is_linked" invisible="1"/>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_linked_project" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-link"
+                                invisible="not is_linked">
+                            <field name="project_ids" widget="statinfo" 
+                                   string="Linked Project" 
+                                   options='{"id": "project_ids"}'/>
+                        </button>
+                    </div>
+                </header>
+                <sheet>
+                    <div class="oe_title">
+                        <h1>
+                            <field name="name" class="mb8" placeholder="Tasklist Name"/>
+                        </h1>
+                    </div>
+                    <group>
+                        <group string="Basic Information">
+                            <field name="lark_guid" string="Lark GUID" readonly="1"/>
+                            <field name="url" widget="url" readonly="1" invisible="not url"/>
+                            <field name="member_count" string="Members" readonly="1"/>
+                        </group>
+                        <group string="Timestamps">
+                            <field name="created_at" readonly="1"/>
+                            <field name="updated_at" readonly="1"/>
+                            <field name="creator_name" readonly="1"/>
+                            <field name="owner_id" readonly="1"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Raw Data" name="raw_data">
+                            <field name="json_data" widget="json_field" options="{'expanded': true}" nolabel="1"/>
+                        </page>
+                        <page string="Linked Projects" name="linked_projects" invisible="not is_linked">
+                            <field name="project_ids" nolabel="1">
+                                <list>
+                                    <field name="name"/>
+                                    <field name="partner_id"/>
+                                    <field name="user_id"/>
+                                </list>
+                                <form>
+                                    <group>
+                                        <field name="name"/>
+                                        <field name="partner_id"/>
+                                        <field name="user_id"/>
+                                    </group>
+                                </form>
+                            </field>
+                        </page>
+                    </notebook>
+                </sheet>
+            </form>
+        </field>
+    </record>
+    
+    <!-- Kanban View -->
+    <record id="view_lark_tasklist_kanban" model="ir.ui.view">
+        <field name="name">lark.tasklist.kanban</field>
+        <field name="model">lark.tasklist</field>
+        <field name="arch" type="xml">
+            <kanban default_group_by="is_linked">
+                <field name="id"/>
+                <field name="name"/>
+                <field name="lark_guid"/>
+                <field name="url"/>
+                <field name="is_linked"/>
+                <field name="member_count"/>
+                <field name="created_at"/>
+                
+                <templates>
+                    <t t-name="kanban-box">
+                        <div class="oe_kanban_global_click">
+                            <div class="o_kanban_record_top mb8" name="div_top">
+                                <div class="o_kanban_record_headings">
+                                    <field name="name" class="o_kanban_record_title"/>
+                                </div>
+                                <div class="o_kanban_record_bottom">
+                                    <div class="oe_kanban_bottom_left">
+                                        <field name="member_count" widget="statinfo" class="mr4"/>
+                                        <i class="fa fa-users mr4"/>
+                                    </div>
+                                    <div class="oe_kanban_bottom_right">
+                                        <field name="is_linked" invisible="1"/>
+                                        <span t-if="record.is_linked.value" class="badge badge-success">
+                                            <i class="fa fa-link"/> Linked
+                                        </span>
+                                        <span t-else="" class="badge badge-default">
+                                            <i class="fa fa-unlink"/> Not Linked
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </t>
+                </templates>
+            </kanban>
+        </field>
+    </record>
+    
+    <!-- Action -->
+    <record id="action_lark_tasklist" model="ir.actions.act_window">
+        <field name="name">Lark Tasklists</field>
+        <field name="res_model">lark.tasklist</field>
+        <field name="view_mode">kanban,tree,form</field>
+        <field name="search_view_id" ref="view_lark_tasklist_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No tasklists found. Let's sync them from Lark!
+            </p>
+            <p>
+                Click the "Sync from Lark" button to fetch tasklists from your Lark account.
+            </p>
+        </field>
+    </record>
+    
+    <!-- Menu Items -->
+    <menuitem id="menu_lark_tasklist_root" name="Lark Tasklists" 
+              parent="project.menu_main_pm" sequence="30"/>
+    <menuitem id="menu_lark_tasklist" name="Tasklists" 
+              parent="menu_lark_tasklist_root" 
+              action="action_lark_tasklist" sequence="10"/>
+</odoo>

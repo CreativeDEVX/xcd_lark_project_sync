@@ -1,0 +1,31 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Access Rights for Lark Tasklist -->
+    <record id="lark_tasklist_security_rule" model="ir.rule">
+        <field name="name">Lark Tasklist User</field>
+        <field name="model_id" ref="model_lark_tasklist"/>
+        <field name="domain_force">[(1, '=', 1)]</field>
+        <field name="groups" eval="[(4, ref('base.group_user'))]"/>
+    </record>
+
+    <record id="lark_tasklist_access_right" model="ir.model.access">
+        <field name="name">lark.tasklist.access</field>
+        <field name="model_id" ref="model_lark_tasklist"/>
+        <field name="group_id" ref="base.group_user"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+
+    <!-- Access Rights for Lark Link Project Wizard -->
+    <record id="lark_link_project_wizard_access_right" model="ir.model.access">
+        <field name="name">lark.link.project.wizard.access</field>
+        <field name="model_id" ref="model_lark_link_project_wizard"/>
+        <field name="group_id" ref="base.group_user"/>
+        <field name="perm_read" eval="True"/>
+        <field name="perm_write" eval="True"/>
+        <field name="perm_create" eval="True"/>
+        <field name="perm_unlink" eval="True"/>
+    </record>
+</odoo>
