@@ -1,0 +1,136 @@
+// Lark Project Sync Styles
+
+// Color variables
+$color-success: #28a745;
+$color-danger: #dc3545;
+$color-info: #17a2b8;
+$color-muted: #6c757d;
+
+// Systray icon styles
+.o_lark_sync_systray {
+    display: flex;
+    align-items: center;
+    position: relative;
+    cursor: pointer;
+    padding: 0 12px;
+    height: 100%;
+    
+    &:hover {
+        background-color: rgba(255, 255, 255, 0.1);
+    }
+    
+    .o_lark_sync_icon {
+        color: white;
+        text-decoration: none;
+        display: flex;
+        align-items: center;
+        height: 100%;
+        
+        i {
+            font-size: 18px;
+        }
+        
+        &:hover {
+            color: #00a09d;
+        }
+    }
+}
+
+// Dropdown styles
+.o_lark_sync_dropdown {
+    position: absolute;
+    background: white;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+    border-radius: 4px;
+    padding: 8px 0;
+    min-width: 200px;
+    z-index: 1100;
+    color: #4c4c4c;
+    font-size: 13px;
+    
+    &::before {
+        content: '';
+        position: absolute;
+        top: -8px;
+        right: 16px;
+        width: 0;
+        height: 0;
+        border-left: 8px solid transparent;
+        border-right: 8px solid transparent;
+        border-bottom: 8px solid white;
+    }
+    
+    .o_lark_sync_dropdown_item {
+        padding: 8px 16px;
+        cursor: pointer;
+        
+        &:hover {
+            background-color: #f5f5f5;
+        }
+    }
+}
+
+// Logs container
+.lark-sync-logs {
+    max-height: 400px;
+    overflow-y: auto;
+    border-top: 1px solid #e9ecef;
+    margin-top: 8px;
+    padding-top: 8px;
+    font-size: 12px;
+    
+    .log-header {
+        font-weight: 600;
+        padding: 4px 16px;
+        color: $color-muted;
+        border-bottom: 1px solid #e9ecef;
+        margin-bottom: 4px;
+    }
+    
+    .log-entries {
+        .log-entry {
+            padding: 4px 16px;
+            display: flex;
+            align-items: flex-start;
+            line-height: 1.4;
+            border-left: 3px solid transparent;
+            
+            i {
+                margin-right: 8px;
+                margin-top: 2px;
+                min-width: 14px;
+                text-align: center;
+            }
+            
+            &.text-success {
+                border-left-color: $color-success;
+                color: darken($color-success, 10%);
+            }
+            
+            &.text-danger {
+                border-left-color: $color-danger;
+                color: darken($color-danger, 10%);
+            }
+            
+            &.text-muted {
+                color: $color-muted;
+                font-style: italic;
+            }
+            
+            &:hover {
+                background-color: #f8f9fa;
+            }
+        }
+    }
+}
+
+// Responsive adjustments
+@media (max-width: 768px) {
+    .o_lark_sync_systray {
+        padding: 0 8px;
+        
+        .o_lark_sync_icon i {
+            font-size: 16px;
+        }
+    }
+}

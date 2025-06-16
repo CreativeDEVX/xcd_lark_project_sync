@@ -44,7 +44,7 @@
                             <!-- Tasklist Preview -->
                             <div class="bg-200 p-3 rounded" invisible="not lark_tasklist_id">
                                 <h4 class="mb-3">
-                                    <i class="fa fa-list-ul me-2"/>
+                                    <i class="fa fa-list-ul me-2" title="Tasklist"/>
                                     <field name="tasklist_name"/>
                                 </h4>
                                 <div class="row">
@@ -69,8 +69,8 @@
                         </group>
                         
                         <group string="Help" class="o_group_col_6">
-                            <div class="alert alert-info">
-                                <h4><i class="fa fa-info-circle me-2"></i>About Linking Projects</h4>
+                            <div class="alert alert-info" role="alert">
+                                <h4><i class="fa fa-info-circle me-2" title="Information"></i>About Linking Projects</h4>
                                 <p class="mb-2">
                                     Linking a project to a Lark tasklist will:
                                 </p>
@@ -79,8 +79,8 @@
                                     <li>Keep project status and deadlines in sync</li>
                                     <li>Allow team collaboration across platforms</li>
                                 </ul>
-                                <div class="alert alert-warning mt-3 mb-0">
-                                    <i class="fa fa-exclamation-triangle me-2"></i>
+                                <div class="alert alert-warning mt-3 mb-0" role="alert">
+                                    <i class="fa fa-exclamation-triangle me-2" title="Warning"></i>
                                     <strong>Note:</strong> Only tasklists that aren't already linked to other projects are shown.
                                 </div>
                             </div>

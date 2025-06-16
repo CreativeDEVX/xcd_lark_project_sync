@@ -1,9 +1,11 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <record id="project_view_form_inherit_lark" model="ir.ui.view">
+    <!-- Project Form View with Lark Integration -->
+    <record id="view_project_form_inherit_lark" model="ir.ui.view">
         <field name="name">project.project.form.inherit.lark</field>
         <field name="model">project.project</field>
         <field name="inherit_id" ref="project.edit_project"/>
+        <field name="priority">10</field>
         <field name="arch" type="xml">
             <!-- Add Lark Tasklist Info to Header -->
             <header>
@@ -30,6 +32,34 @@
             <!-- Add Lark Info to Project Form -->
             <div name="button_box" position="inside">
                 <div class="oe_button_box" name="button_box" groups="base.group_user">
+                    <button name="action_sync_lark_tasks" 
+                            type="object" 
+                            class="oe_stat_button"
+                            icon="fa-refresh"
+                            groups="project.group_project_user"
+                            title="Sync with Lark"
+                            help="Sync with Lark">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Sync</span>
+                            <span class="o_stat_value">
+                                <i class="fa fa-refresh"/>
+                            </span>
+                        </div>
+                    </button>
+                    <button name="action_view_lark_tasks" 
+                            type="object" 
+                            class="oe_stat_button"
+                            icon="fa-tasks"
+                            title="View Lark Tasks"
+                            groups="project.group_project_user"
+                            invisible="not lark_task_count or lark_task_count &lt;= 0">
+                        <div class="o_stat_info">
+                            <span class="o_stat_text">Lark Tasks</span>
+                            <span class="o_stat_value">
+                                <field name="lark_task_count" widget="statinfo" string=""/>
+                            </span>
+                        </div>
+                    </button>
                     <button name="action_open_linked_tasklist" 
                             type="object" 
                             class="oe_stat_button"
@@ -42,6 +72,26 @@
                 </div>
             </div>
             
+            <!-- Add Lark Tasks tab -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Lark Tasks" name="lark_tasks" groups="project.group_project_user">
+                    <field name="lark_task_ids" context="{'default_project_id': id}">
+                        <list decoration-muted="status in ['done', 'archived']" decoration-danger="status == 'in_progress' and not due_date">
+                            <field name="name"/>
+                            <field name="status" widget="selection" options='{"no_open": true}' groups="base.group_user"/>
+                            <field name="assignee_id" widget="many2one_avatar_user"/>
+                            <field name="due_date" widget="datetime"/>
+                            <field name="create_date" string="Created" widget="datetime"/>
+                        </list>
+                    </field>
+                </page>
+            </xpath>
+            
+            <!-- Lark Task Form View -->
+            <xpath expr="//field[@name='lark_task_ids']" position="attributes">
+                <attribute name="context">{'form_view_ref': 'lark_project_sync.view_lark_task_form'}</attribute>
+            </xpath>
+            
             <!-- Add Lark Info to Project Settings -->
             <page name="settings" position="inside">
                 <group string="Lark Integration" invisible="not lark_tasklist_id">
@@ -53,6 +103,7 @@
                                     type="object" 
                                     class="oe_inline"
                                     icon="fa-external-link"
+                                    title="Open in Lark"
                                     invisible="not lark_tasklist_id"
                                     groups="base.group_user"/>
                         </div>
@@ -86,4 +137,28 @@
             </xpath>
         </field>
     </record>
-</odoo> 
+    <!-- Project Task Form View with Task Sequence -->
+    <record id="view_project_task_form_inherit_lark" model="ir.ui.view">
+        <field name="name">project.task.form.inherit.lark</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_form2"/>
+        <field name="arch" type="xml">
+            <!-- Add task sequence to the name field -->
+            <xpath expr="//field[@name='name']" position="before">
+                <field name="task_sequence" class="o_field_char o_field_inline" readonly="1" style="margin-right: 10px;"/>
+            </xpath>
+        </field>
+    </record>
+    
+    <!-- Project Task Tree View with Task Sequence -->
+    <record id="view_project_task_tree_inherit_lark" model="ir.ui.view">
+        <field name="name">project.task.tree.inherit.lark</field>
+        <field name="model">project.task</field>
+        <field name="inherit_id" ref="project.view_task_tree2"/>
+        <field name="arch" type="xml">
+            <xpath expr="//field[@name='name']" position="before">
+                <field name="task_sequence" string="Task #"/>
+            </xpath>
+        </field>
+    </record>
+</odoo>

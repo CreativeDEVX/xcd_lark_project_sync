@@ -12,7 +12,7 @@
                 <field name="created_at" string="Created" widget="date"/>
                 <field name="updated_at" string="Updated" widget="date"/>
                 <field name="is_linked" invisible="1"/>
-                <button name="action_open_in_lark" type="object" icon="fa-external-link" string="" class="oe_stat_button" help="Open in Lark"/>
+                <button name="action_open_in_lark" type="object" icon="fa-external-link" string="Open in Lark" class="oe_stat_button" help="Open in Lark" title="Open in Lark"/>
             </list>
         </field>
     </record>
@@ -188,7 +188,7 @@
     <record id="action_lark_tasklist" model="ir.actions.act_window">
         <field name="name">Lark Tasklists</field>
         <field name="res_model">lark.tasklist</field>
-        <field name="view_mode">list,form</field>
+        <field name="view_mode">list</field>
         <field name="search_view_id" ref="view_lark_tasklist_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

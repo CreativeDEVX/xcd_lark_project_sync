@@ -85,6 +85,76 @@ class LarkAPI(models.Model):
                 }
             }
 
+    def sync_lark_tasks(self, project_id=None):
+        """
+        Fetch tasks from Lark and create/update them in Odoo
+        
+        :param int project_id: Optional Odoo project ID to link tasks to
+        :return: dict with sync results
+        """
+        self.ensure_one()
+        
+        if not self.user_access_token:
+            raise UserError(_("No valid Lark access token. Please authenticate first."))
+            
+        # Get task lists from Lark
+        tasklists = self.get_tasklists()
+        if not tasklists:
+            return {'success': False, 'message': 'No task lists found in Lark'}
+            
+        results = {
+            'total': 0,
+            'created': 0,
+            'updated': 0,
+            'errors': 0,
+            'tasklists': []
+        }
+        
+        # Process each task list
+        for tasklist in tasklists:
+            try:
+                tasks = self.get_tasks(tasklist['tasklist_id'])
+                if not tasks:
+                    continue
+                    
+                tasklist_info = {
+                    'name': tasklist.get('name', 'Unnamed List'),
+                    'tasks': [],
+                    'count': 0
+                }
+                
+                # Process each task in the list
+                for task_data in tasks:
+                    try:
+                        task = self.env['lark.task'].create_from_lark_data(
+                            task_data,
+                            project_id=project_id
+                        )
+                        if task:
+                            results['total'] += 1
+                            tasklist_info['count'] += 1
+                            tasklist_info['tasks'].append({
+                                'id': task.id,
+                                'name': task.name,
+                                'status': task.status
+                            })
+                            if task_data.get('is_new', True):
+                                results['created'] += 1
+                            else:
+                                results['updated'] += 1
+                    except Exception as e:
+                        _logger.error("Error processing task %s: %s", task_data.get('task_id'), str(e))
+                        results['errors'] += 1
+                        
+                if tasklist_info['count'] > 0:
+                    results['tasklists'].append(tasklist_info)
+                    
+            except Exception as e:
+                _logger.error("Error processing task list %s: %s", tasklist.get('tasklist_id'), str(e))
+                results['errors'] += 1
+                
+        return results
+        
     def _get_paginated_results(self, url, params=None):
         """Handle paginated API responses"""
         results = []
@@ -148,7 +218,7 @@ class LarkAPI(models.Model):
                     break
                     
         except requests.exceptions.RequestException as e:
-
+            error_msg = f"Error making request to {url}"
             if hasattr(e, 'response') and e.response is not None:
                 error_msg += f"\nStatus Code: {e.response.status_code}"
                 try:
@@ -366,63 +436,197 @@ class LarkAPI(models.Model):
             _logger.error("General error in sync_tasks_from_lark: %s", str(e), exc_info=True)
             raise UserError(_("Error during task sync: %s") % str(e))
             
-    def _process_task_data(self, tasks_data, project_id):
-        """Helper to process a list of Lark task data and sync them to a specific Odoo project."""
-        tasks_synced = 0
-        for task_data in tasks_data:
-            try:
-                task = self.env["project.task"].search(
-                    [("lark_id", "=", task_data.get('id'))], 
-                    limit=1
-                )
+    
+    def _log_task_data(self, task_data, index=None):
+        """Safely log task data for debugging"""
+        try:
+            import json
+            from datetime import datetime
+            
+            log_data = {}
+            if index is not None:
+                _logger.info("\n=== Processing Task %s ===", index)
                 
-                status = task_data.get('status', {})
-                is_completed = status.get('is_done', False)
+            # Safely extract and log task data
+            for field in ['id', 'summary', 'description', 'due', 'completed', 'assignee_id', 'parent_id']:
+                value = task_data.get(field)
+                if isinstance(value, dict):
+                    log_data[field] = {k: v for k, v in value.items() if not k.startswith('_')}
+                else:
+                    log_data[field] = value
+            
+            _logger.info("Task data: %s", json.dumps(log_data, indent=2, default=str))
+            
+        except Exception as e:
+            _logger.error("Error logging task data: %s", str(e), exc_info=True)
+    
+    def _process_task_data(self, tasks_data, project_id):
+        """Helper to process a list of Lark task data and sync them to a specific Odoo project.
+        
+        Args:
+            tasks_data (list): List of task dictionaries from Lark API
+            project_id (int): ID of the Odoo project to sync tasks to
+            
+        Returns:
+            int: Number of tasks successfully processed
+        """
+        _logger.info("=== PROCESSING %d TASKS FOR PROJECT %s ===", 
+                    len(tasks_data) if tasks_data else 0, project_id)
+        
+        Task = self.env['project.task']
+        Project = self.env['project.project']
+        tasks_synced = 0
+        
+        # Get the project to check if it's linked to Lark
+        project = Project.browse(project_id)
+        if not project.exists():
+            _logger.error("Project with ID %s not found", project_id)
+            return 0
+            
+        if not project.lark_id:
+            _logger.warning("Project %s is not linked to a Lark tasklist. Skipping task sync.", project.name)
+            return 0
+            
+        _logger.info("Project '%s' is linked to Lark tasklist: %s", project.name, project.lark_id)
+            
+        for idx, task_data in enumerate(tasks_data or [], 1):
+            task_id = task_data.get('id')
+            if not task_id:
+                _logger.warning("Skipping task at index %d with no ID. Data: %s", idx, task_data)
+                continue
+                
+            try:
+                _logger.debug("\n=== Processing task %d/%d (ID: %s) ===", 
+                            idx, len(tasks_data), task_id)
+                
+                # Log task data structure for debugging
+                self._log_task_data(task_data, idx)
+                
+                # Try to find existing task by lark_id
+                task = Task.search([('lark_id', '=', task_id)], limit=1)
+                _logger.debug("Found existing task: %s", task.id if task else 'None')
+                
+                # Prepare task values with error handling
+                due_date = None
+                try:
+                    if isinstance(task_data.get('due'), dict):
+                        due_date = task_data.get('due', {}).get('date')
+                        if due_date:
+                            due_date = fields.Datetime.to_datetime(due_date)
+                            _logger.debug("Parsed due date: %s", due_date)
+                except Exception as e:
+                    _logger.warning("Error parsing due date for task %s: %s", task_id, str(e))
+                
+                is_completed = task_data.get('completed', False)
+                task_name = task_data.get('summary', 'Unnamed Task')
                 
                 values = {
-                    'name': task_data.get('summary', 'Unnamed Task'),
-                    'description': task_data.get('description', ''),
                     'project_id': project_id,
-                    'lark_id': task_data.get('id'),
-                    'date_deadline': task_data.get('due', {}).get('date') or False,
+                    'name': task_name,
+                    'description': task_data.get('description', ''),
+                    'lark_id': task_id,
+                    'lark_guid': task_data.get('guid'),
+                    'lark_etag': task_data.get('etag'),
+                    'lark_updated': fields.Datetime.now(),
+                    'date_deadline': due_date or False,
                     'user_id': self._find_odoo_user_id(task_data.get('assignee_id')),
-                    'stage_id': self._get_task_stage_id(project_id, is_completed)
+                    'stage_id': self._get_task_stage_id(project_id, is_completed),
+                    'date_last_stage_update': fields.Datetime.now() if is_completed else False,
                 }
                 
-                if task:
-                    task.write(values)
-                else:
-                    self.env['project.task'].create(values)
+                # Log values except description to keep logs clean
+                log_values = {k: v for k, v in values.items() 
+                             if not k.startswith('description')}
+                _logger.debug("Task values: %s", log_values)
+                
+                # Handle parent task if exists
+                parent_id = task_data.get('parent_id')
+                if parent_id:
+                    parent_task = Task.search([('lark_id', '=', parent_id)], limit=1)
+                    if parent_task:
+                        values['parent_id'] = parent_task.id
+                        _logger.debug("Linked to parent task ID: %s", parent_task.id)
+                
+                try:
+                    if task:
+                        # Update existing task
+                        task.write(values)
+                        _logger.info("Updated task '%s' (Lark ID: %s) in project '%s'", 
+                                   task_name, task_id, project.name)
+                    else:
+                        # Create new task
+                        task = Task.create(values)
+                        _logger.info("Created new task '%s' (Lark ID: %s) in project '%s' (Odoo ID: %s)", 
+                                   task_name, task_id, project.name, task.id)
                     
-                tasks_synced += 1
+                    tasks_synced += 1
+                    
+                except Exception as e:
+                    _logger.error("Error saving task %s (%s): %s", 
+                                 task_name, task_id, str(e), exc_info=True)
+                    continue
+                
             except Exception as e:
-                _logger.error("Error syncing individual task %s: %s", task_data.get('id'), str(e), exc_info=True)
+                task_id_str = str(task_id) if 'task_id' in locals() else 'unknown'
+                _logger.error("Error syncing task %s: %s", task_id_str, str(e), exc_info=True)
                 continue
+                
+        success_rate = (tasks_synced / len(tasks_data) * 100) if tasks_data else 0
+        _logger.info("=== TASK SYNC COMPLETE ===")
+        _logger.info("Project: %s (ID: %s)", project.name, project_id)
+        _logger.info("Tasks processed: %d", len(tasks_data) if tasks_data else 0)
+        _logger.info("Tasks synced: %d (%.1f%%)", tasks_synced, success_rate)
+        _logger.info("Failed: %d", (len(tasks_data) if tasks_data else 0) - tasks_synced)
+        
         return tasks_synced
 
     def _get_all_tasks_for_project(self, tasklist_guid):
-        """Recursively get all tasks for a given tasklist, including those in sections."""
-        all_tasks = []
-
-        # Get top-level tasks
-        tasks_url = "https://open.larksuite.com/open-apis/task/v2/tasks"
-        params = {'tasklist_guid': tasklist_guid, 'page_size': 100}
-        all_tasks.extend(self._get_paginated_results(tasks_url, params))
-
-        # Get sections (task groups) and their tasks
-        sections_url = f"https://open.larksuite.com/open-apis/task/v2/tasklists/{tasklist_guid}/sections"
+        """Get all tasks for a given tasklist using the Lark API.
+        
+        Args:
+            tasklist_guid (str): The GUID of the tasklist to fetch tasks from
+            
+        Returns:
+            list: List of task dictionaries with required fields
+        """
+        _logger.info("=== FETCHING TASKS FOR TASKLIST: %s ===", tasklist_guid)
+        url = f"https://open.larksuite.com/open-apis/task/v2/tasklists/{tasklist_guid}/tasks"
+        _logger.info("Requesting tasks from URL: %s", url)
+        
         try:
-            sections = self._get_paginated_results(sections_url)
-            for section in sections:
-                section_guid = section.get('id')
-                if section_guid:
-                    section_tasks_url = f"https://open.larksuite.com/open-apis/task/v2/sections/{section_guid}/tasks"
-                    all_tasks.extend(self._get_paginated_results(section_tasks_url, {'page_size': 100}))
-        except UserError as e:
-            # It's possible the API user doesn't have section permissions or there are no sections.
-            # We can log this and continue with the tasks we already have.
-            _logger.warning("Could not fetch sections for tasklist %s. Error: %s", tasklist_guid, str(e))
-
+            # Get paginated results
+            tasks = self._get_paginated_results(url, {'page_size': 100})
+            _logger.info("Retrieved %d tasks from API", len(tasks) if tasks else 0)
+            
+            if not tasks:
+                _logger.warning("No tasks returned from API for tasklist %s", tasklist_guid)
+                return []
+                
+            # Log first task as sample
+            if tasks:
+                _logger.info("Sample task data (first task): %s", json.dumps(tasks[0], indent=2, default=str))
+                
+                # Check for required fields
+                for i, task in enumerate(tasks, 1):
+                    if not task.get('id'):
+                        _logger.warning("Task at index %d is missing 'id' field: %s", i, task)
+                    if not task.get('summary'):
+                        _logger.warning("Task at index %d is missing 'summary' field: %s", i, task)
+            
+            return tasks
+            
+        except Exception as e:
+            _logger.error("Error fetching tasks for tasklist %s: %s", tasklist_guid, str(e), exc_info=True)
+            return []
+            tasks = self._get_paginated_results(tasks_url, params)
+            all_tasks.extend(tasks)
+            
+            _logger.info("Fetched %d tasks from tasklist %s", len(tasks), tasklist_guid)
+            
+        except Exception as e:
+            _logger.error("Error fetching tasks for tasklist %s: %s", tasklist_guid, str(e))
+            raise UserError(_("Error fetching tasks from Lark: %s") % str(e))
+            
         return all_tasks
 
     def _find_odoo_user_id(self, lark_user_id):
@@ -435,29 +639,57 @@ class LarkAPI(models.Model):
         return self.env.user.id or False
     
     def _get_task_stage_id(self, project_id, is_completed):
-        """Get the appropriate stage ID for a task based on completion status"""
+        """Get the appropriate stage ID for a task based on completion status.
+        
+        Args:
+            project_id (int): ID of the project
+            is_completed (bool): Whether the task is completed
+            
+        Returns:
+            int: ID of the stage, or False if no stages found
+        """
+        _logger.debug("Getting stage for project %s (completed=%s)", project_id, is_completed)
+        
+        # Get the project and verify it exists
         project = self.env['project.project'].browse(project_id)
-        if not project:
+        if not project.exists():
+            _logger.error("Project with ID %s not found", project_id)
+            return False
+        
+        # Get all stages for the project
+        stages = self.env['project.task.type'].search([('project_ids', 'in', [project_id])])
+        
+        if not stages:
+            _logger.warning("No stages found for project '%s' (ID: %s)", project.name, project_id)
             return False
             
-        stage_domain = [('project_ids', 'in', [project_id])]
+        _logger.debug("Available stages for project '%s': %s", 
+                     project.name, 
+                     [(s.id, s.name, s.sequence) for s in stages])
         
         if is_completed:
-            # Find a 'Done' stage
-            done_stage = self.env['project.task.type'].search(
-                stage_domain + [('name', 'ilike', 'done')], 
-                limit=1
-            )
-            if done_stage:
-                return done_stage.id
-                
-        # Default to first stage if not completed or no done stage found
-        first_stage = self.env['project.task.type'].search(
-            stage_domain, 
-            order='sequence', 
-            limit=1
-        )
-        return first_stage.id if first_stage else False
+            # Look for completed stages in order of preference
+            for stage_name in ['Done', 'Completed', 'Closed']:
+                done_stage = stages.filtered(
+                    lambda s: stage_name.lower() in s.name.lower()
+                )
+                if done_stage:
+                    stage = min(done_stage, key=lambda x: x.sequence)  # Get the first in sequence if multiple
+                    _logger.debug("Using '%s' stage (ID: %s) for completed task", 
+                                 stage.name, stage.id)
+                    return stage.id
+            
+            # If no specific done stage found, use the last stage in the sequence
+            last_stage = max(stages, key=lambda x: x.sequence)
+            _logger.debug("Using last stage '%s' (ID: %s) for completed task", 
+                         last_stage.name, last_stage.id)
+            return last_stage.id
+        else:
+            # For incomplete tasks, use the first stage in the sequence
+            first_stage = min(stages, key=lambda x: x.sequence)
+            _logger.debug("Using first stage '%s' (ID: %s) for new task", 
+                         first_stage.name, first_stage.id)
+            return first_stage.id
 
 
     def push_task_to_lark(self, task):
@@ -631,32 +863,11 @@ class LarkAPI(models.Model):
                 'updated_at': lark_ms_to_odoo_datetime(item.get('updated_at')),
                 'json_data': json.dumps(item, ensure_ascii=False),
             }
-            existing = self.env['lark.tasklist'].search([('lark_guid', '=', vals['lark_guid'])], limit=1)
+            existing = self.env['project.task'].search([('lark_id', '=', vals['lark_id'])], limit=1)
             if existing:
                 existing.write(vals)
             else:
-                self.env['lark.tasklist'].create(vals)
-
-    def debug_lark_tasklists(self):
-        lark_url = "https://open.larksuite.com/open-apis/task/v2/tasklists"
-        headers = {
-            "Authorization": f"Bearer {self.user_access_token}",
-            "Content-Type": "application/json; charset=utf-8"
-        }
-        params = {
-            "page_size": 50,
-            "user_id_type": "open_id"
-        }
-
-        response = requests.get(lark_url, headers=headers, params=params)
-        data = response.json()
-        self.log_json_to_chatter(data, subject="Lark Tasklist API Response")
-        if data.get('code') == 0:
-            items = data.get('data', {}).get('items', [])
-            for item in items:
-                _logger.info("Lark Tasklist: %s %s", item['name'], item['guid'])
-        else:
-            _logger.error("Lark API error: %s", data.get('msg'))
+                self.env['project.task'].create(vals)
 
     def action_start_lark_oauth(self):
         """Redirect user to Lark OAuth authorization URL (new endpoint)."""
@@ -683,15 +894,8 @@ class LarkAPI(models.Model):
             if project:
                 tasklist.project_id = project.id
 
-class ResConfigSettings(models.TransientModel):
-    _inherit = 'res.config.settings'
-
-    lark_api_id = fields.Many2one('lark.api', string='Lark API',
-        related='company_id.lark_api_id', readonly=False)
-
 class ResCompany(models.Model):
     _inherit = 'res.company'
-
     lark_api_id = fields.Many2one('lark.api', string='Lark API')
     
 

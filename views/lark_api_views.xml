@@ -22,7 +22,6 @@
                 <header>
                     <button name="sync_projects_from_lark" string="Sync Tasklists" type="object" class="oe_highlight"/>
                     <button name="sync_tasks_from_lark" string="Sync Tasks" type="object" class="oe_highlight"/>
-                    <button name="debug_lark_tasklists" string="Debug Lark Tasklists" type="object" class="oe_highlight"/>
                     <button name="action_open_related_documents"
                             type="object"
                             class="oe_stat_button"

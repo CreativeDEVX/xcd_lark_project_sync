@@ -1,0 +1,91 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Demo data for Lark Tasks -->
+    <record id="demo_lark_task_1" model="lark.task">
+        <field name="name">Integrate Odoo with Lark API</field>
+        <field name="project_id" ref="project.project_project_1"/>
+        <field name="description">
+            <p>Implement the API integration between Odoo and Lark to sync tasks and projects.</p>
+            <ul>
+                <li>Set up OAuth2 authentication</li>
+                <li>Implement task synchronization</li>
+                <li>Handle webhooks for real-time updates</li>
+            </ul>
+        </field>
+        <field name="status">in_progress</field>
+        <field name="assignee_id" ref="base.user_admin"/>
+        <field name="due_date" eval="(datetime.now() + timedelta(days=7)).strftime('%Y-%m-%d 18:00:00')"/>
+    </record>
+
+    <record id="demo_lark_task_2" model="lark.task">
+        <field name="name">Design Lark Task UI</field>
+        <field name="project_id" ref="project.project_project_1"/>
+        <field name="description">
+            <p>Create user interface for managing Lark tasks within Odoo.</p>
+            <p>Include:</p>
+            <ul>
+                <li>Task list view with filters</li>
+                <li>Task form with all relevant fields</li>
+                <li>Integration with Odoo's chatter</li>
+            </ul>
+        </field>
+        <field name="status">todo</field>
+        <field name="assignee_id" ref="base.user_demo"/>
+        <field name="due_date" eval="(datetime.now() + timedelta(days=5)).strftime('%Y-%m-%d 18:00:00')"/>
+    </record>
+
+    <record id="demo_lark_task_3" model="lark.task">
+        <field name="name">Test Lark Integration</field>
+        <field name="project_id" ref="project.project_project_2"/>
+        <field name="description">
+            <p>Create and run tests for the Lark integration.</p>
+            <p>Coverage should include:</p>
+            <ul>
+                <li>API authentication</li>
+                <li>Data synchronization</li>
+                <li>Error handling</li>
+                <li>Performance testing</li>
+            </ul>
+        </field>
+        <field name="status">todo</field>
+        <field name="assignee_id" ref="base.user_admin"/>
+        <field name="due_date" eval="(datetime.now() + timedelta(days=10)).strftime('%Y-%m-%d 18:00:00')"/>
+    </record>
+
+    <record id="demo_lark_task_4" model="lark.task">
+        <field name="name">Document Lark Integration</field>
+        <field name="project_id" ref="project.project_project_2"/>
+        <field name="description">
+            <p>Create documentation for the Lark integration module.</p>
+            <p>Include:</p>
+            <ul>
+                <li>Installation guide</li>
+                <li>Configuration instructions</li>
+                <li>User manual</li>
+                <li>Developer documentation</li>
+            </ul>
+        </field>
+        <field name="status">todo</field>
+        <field name="assignee_id" ref="base.user_demo"/>
+        <field name="due_date" eval="(datetime.now() + timedelta(days=12)).strftime('%Y-%m-%d 18:00:00')"/>
+    </record>
+
+    <record id="demo_lark_task_5" model="lark.task">
+        <field name="name">Deploy Lark Integration</field>
+        <field name="project_id" ref="project.project_project_1"/>
+        <field name="description">
+            <p>Deploy the Lark integration to production environment.</p>
+            <p>Steps:</p>
+            <ol>
+                <li>Prepare deployment package</li>
+                <li>Backup existing data</li>
+                <li>Deploy code</li>
+                <li>Run database migrations</li>
+                <li>Verify functionality</li>
+            </ol>
+        </field>
+        <field name="status">todo</field>
+        <field name="assignee_id" ref="base.user_admin"/>
+        <field name="due_date" eval="(datetime.now() + timedelta(days=14)).strftime('%Y-%m-%d 18:00:00')"/>
+    </record>
+</odoo>

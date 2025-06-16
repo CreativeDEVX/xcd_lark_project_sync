@@ -1,40 +1,119 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-  <!-- Settings View -->
-  <record id="res_config_settings_view_form" model="ir.ui.view">
-    <field name="name">res.config.settings.view.form.inherit.lark</field>
-    <field name="model">res.config.settings</field>
-    <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
-    <field name="priority" eval="50"/>
-    <field name="arch" type="xml">
-      <xpath expr="//form[1]" position="inside">
-        <app name="lark_project_sync" data-string="Lark" string="Lark" groups="base.group_system">
-          <block title="Lark API Management">
-            <setting id="lark_api_config_setting" help="Select or create a new Lark API configuration">
-            <field name="lark_api_id" class="oe_inline" options="{'no_create': False, 'no_open': False}"/>
-            </setting>
-          </block>
-        </app>
-      </xpath>
+    <!-- Settings View -->
+    <record id="res_config_settings_view_form" model="ir.ui.view">
+        <field name="name">res.config.settings.view.form.inherit.lark.project.sync</field>
+        <field name="model">res.config.settings</field>
+        <field name="inherit_id" ref="base_setup.res_config_settings_view_form"/>
+        <field name="priority" eval="50"/>
+        <field name="arch" type="xml">
+            <xpath expr="//app[@name='general_settings']" position="after">
+                <app data-string="Lark" string="Lark" name="lark_settings" logo="/lark_project_sync/static/description/icon.png">
+                    <div class="app_settings_block" data-key="lark_project_sync">
+                        <h2>Lark Integration</h2>
+                    <div class="row mt16">
+                        <div class="col-12 col-lg-6">
+                            <div class="o_setting_right_pane">
+                                <label for="lark_enable_sync"/>
+                                <div class="text-muted">
+                                    Enable synchronization with Lark
+                                </div>
+                            </div>
+                            <field name="lark_enable_sync" class="oe_inline"/>
+                        </div>
+                    </div>
+
+                    <div class="row mt16">
+                        <div class="col-12">
+                            <h3>Lark API Connection</h3>
+                            <div class="row">
+                                <div class="col-12 col-lg-6">
+                                    <label for="lark_api_id" class="col-lg-3 col-md-4 col-sm-5 mb-0"/>
+                                    <field name="lark_api_id" class="oe_inline" options="{'no_create': True, 'no_open': True}"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt16">
+                        <div class="col-12">
+                            <h3>Lark API Credentials</h3>
+                            <div class="row">
+                                <div class="col-12 col-lg-6">
+                                    <label for="lark_app_id" class="col-lg-3 col-md-4 col-sm-5 mb-0">App ID</label>
+                                    <field name="lark_app_id" placeholder="Your Lark App ID" class="oe_inline"/>
+                                </div>
+                                <div class="col-12 col-lg-6">
+                                    <label for="lark_api_secret" class="col-lg-3 col-md-4 col-sm-5 mb-0">App Secret</label>
+                                    <field name="lark_api_secret" placeholder="Your Lark App Secret" class="oe_inline"/>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row mt16">
+                        <div class="col-12 col-lg-6">
+                            <label for="lark_webhook_verify_token" class="col-lg-3 col-md-4 col-sm-5 mb-0"/>
+                            <field name="lark_webhook_verify_token" placeholder="Webhook Verify Token" class="oe_inline"/>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <label for="lark_webhook_encrypt_key" class="col-lg-3 col-md-4 col-sm-5 mb-0"/>
+                            <field name="lark_webhook_encrypt_key" placeholder="Webhook Encrypt Key" class="oe_inline"/>
+                        </div>
+                    </div>
+
+                    <div class="row mt16">
+                        <div class="col-12 col-lg-6">
+                            <label for="lark_sync_interval" class="col-lg-3 col-md-4 col-sm-5 mb-0"/>
+                            <div class="input-group">
+                                <field name="lark_sync_interval" class="oe_inline"/>
+                                <span class="input-group-text">minutes</span>
+                            </div>
+                        </div>
+                        <div class="col-12 col-lg-6">
+                            <label for="lark_debug_mode" class="col-lg-3 col-md-4 col-sm-5 mb-0"/>
+                            <field name="lark_debug_mode" class="oe_inline"/>
+                        </div>
+                    </div>
+
+                    <div class="row mt16">
+                        <div class="col-12">
+                            <div class="alert alert-info" role="alert">
+                                <i class="fa fa-info-circle me-2"></i>
+                                To get your Lark API credentials, go to
+                                <a href="https://open.larksuite.com/" target="_blank" class="alert-link">Lark Developer Console</a>
+                                and create a new application.
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </app>
+        </xpath>
     </field>
-  </record>
-  
-  <!-- Action to open settings -->
-  <record id="lark_settings_action" model="ir.actions.act_window">
-    <field name="name">Lark Settings</field>
-    <field name="type">ir.actions.act_window</field>
-    <field name="res_model">res.config.settings</field>
-    <field name="view_mode">form</field>
-    <field name="target">inline</field>
-    <field name="view_id" ref="res_config_settings_view_form"/>
-  </record>
-  
-  <!-- Menu Items -->
-  <menuitem id="menu_lark_root" name="Lark" sequence="10"/>
-  
-  <menuitem id="menu_lark_config" 
-            name="Settings" 
-            parent="menu_lark_root" 
-            action="lark_settings_action"
-            sequence="10"/>
+</record>
+
+    <!-- Action to open settings -->
+    <record id="lark_settings_action" model="ir.actions.act_window">
+        <field name="name">Lark Settings</field>
+        <field name="type">ir.actions.act_window</field>
+        <field name="res_model">res.config.settings</field>
+        <field name="view_mode">form</field>
+        <field name="target">inline</field>
+        <field name="view_id" ref="res_config_settings_view_form"/>
+        <field name="context">
+            {
+                'module': 'lark_project_sync',
+                'default_reset': True
+            }
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="menu_lark_root" name="Lark" sequence="10"/>
+    
+    <menuitem id="menu_lark_config" 
+              name="Settings" 
+              parent="menu_lark_root" 
+              action="lark_settings_action"
+              sequence="10"/>
 </odoo>

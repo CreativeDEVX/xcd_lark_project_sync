@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- Email Templates for Lark Task Notifications -->
+    <record id="email_template_lark_task_assigned" model="mail.template">
+        <field name="name">Lark Task Assigned</field>
+        <field name="model_id" ref="model_lark_task"/>
+        <field name="email_from">${(object.assignee_id.email_formatted or '')|safe}</field>
+        <field name="email_to">${object.assignee_id.email_formatted or '' | safe}</field>
+        <field name="subject">New task assigned: ${object.name}</field>
+        <field name="body_html"><![CDATA[
+            <div style="font-family: Arial, sans-serif; color: #666666;">
+                <p>Hello ${object.assignee_id.name or 'User'},</p>
+                <p>You have been assigned to a new Lark task:</p>
+                <div style="margin: 16px 0; padding: 8px 16px; background: #f8f9fa; border-radius: 4px;">
+                    <h2 style="margin: 0 0 8px 0; color: #212529;">${object.name}</h2>
+                    <p style="margin: 4px 0;">
+                        <strong>Project:</strong> ${object.project_id.name or ''}
+                    </p>
+                    <p style="margin: 4px 0;">
+                        <strong>Due Date:</strong> ${object.due_date and format_datetime(object.due_date, tz=object.assignee_id.tz, dt_format='short') or 'Not specified'}
+                    </p>
+                    <p style="margin: 4px 0;">
+                        <strong>Status:</strong> ${dict(object._fields['status'].selection).get(object.status, '')}
+                    </p>
+                </div>
+                <p>You can view the task by clicking on the following link:</p>
+                <div style="margin: 16px 0; text-align: center;">
+                    <a href="/web#id=${object.id}&amp;model=lark.task&amp;view_type=form" 
+                       style="display: inline-block; padding: 10px 20px; background: #1a73e8; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                        View Task
+                    </a>
+                </div>
+                <p>Best regards,<br/>${object.create_uid.name or 'The Team'}</p>
+            </div>
+        ]]></field>
+    </record>
+
+    <record id="email_template_lark_task_updated" model="mail.template">
+        <field name="name">Lark Task Updated</field>
+        <field name="model_id" ref="model_lark_task"/>
+        <field name="email_from">${(object.write_uid.email_formatted or object.create_uid.email_formatted or '')|safe}</field>
+        <field name="email_to">${object.assignee_id.email_formatted or '' | safe}</field>
+        <field name="subject">Task updated: ${object.name}</field>
+        <field name="body_html"><![CDATA[
+            <div style="font-family: Arial, sans-serif; color: #666666;">
+                <p>Hello ${object.assignee_id.name or 'User'},</p>
+                <p>The following Lark task has been updated:</p>
+                <div style="margin: 16px 0; padding: 8px 16px; background: #f8f9fa; border-radius: 4px;">
+                    <h2 style="margin: 0 0 8px 0; color: #212529;">${object.name}</h2>
+                    <p style="margin: 4px 0;">
+                        <strong>Project:</strong> ${object.project_id.name or ''}
+                    </p>
+                    <p style="margin: 4px 0;">
+                        <strong>Due Date:</strong> ${object.due_date and format_datetime(object.due_date, tz=object.assignee_id.tz, dt_format='short') or 'Not specified'}
+                    </p>
+                    <p style="margin: 4px 0;">
+                        <strong>Status:</strong> ${dict(object._fields['status'].selection).get(object.status, '')}
+                    </p>
+                </div>
+                <p>You can view the updated task by clicking on the following link:</p>
+                <div style="margin: 16px 0; text-align: center;">
+                    <a href="/web#id=${object.id}&amp;model=lark.task&amp;view_type=form" 
+                       style="display: inline-block; padding: 10px 20px; background: #1a73e8; color: white; text-decoration: none; border-radius: 4px; font-weight: bold;">
+                        View Task
+                    </a>
+                </div>
+                <p>Best regards,<br/>${object.write_uid.name or object.create_uid.name or 'The Team'}</p>
+            </div>
+        ]]></field>
+    </record>
+</odoo>

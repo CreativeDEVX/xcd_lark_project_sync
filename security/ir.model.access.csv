@@ -3,3 +3,6 @@ access_lark_api,access_lark_api,model_lark_api,base.group_system,1,1,1,1
 access_lark_tasklist_user,Lark Tasklist user,model_lark_tasklist,base.group_user,1,0,0,0
 access_lark_api_log_user,Lark API Log user,model_lark_api_log,base.group_user,1,0,0,0
 access_lark_api_log_admin,Lark API Log admin,model_lark_api_log,base.group_system,1,1,1,1
+access_lark_task,lark.task,model_lark_task,project.group_project_user,1,1,1,1
+access_lark_task_admin,lark.task,model_lark_task,base.group_system,1,1,1,1
+
