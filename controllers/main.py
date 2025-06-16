@@ -43,7 +43,7 @@ class LarkOAuthController(http.Controller):
         })
         return "Lark access token updated! You can close this window."
         
-    @http.route('/lark_project_sync/sync', type='http', auth='user', methods=['POST'], csrf=False)
+    @http.route('/xcd_lark_project_sync/sync', type='http', auth='user', methods=['POST'], csrf=False)
     def sync_tasks(self, **kwargs):
         """
         Handle task synchronization from Lark to Odoo

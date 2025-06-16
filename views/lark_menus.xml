@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- Main Menu -->
-    <menuitem id="menu_lark_root" name="Lark" sequence="100" web_icon="lark_project_sync,static/description/icon.png">
+    <menuitem id="menu_lark_root" name="Lark" sequence="100" web_icon="xcd_lark_project_sync,static/description/icon.png">
         
         <!-- Tasks Submenu -->
         <menuitem 

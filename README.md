@@ -19,7 +19,7 @@ This module integrates Odoo Projects with Lark Tasks, enabling seamless task syn
 
 1. Install the module:
    ```bash
-   python3 odoo-bin -i lark_project_sync --stop-after-init
+   python3 odoo-bin -i xcd_lark_project_sync --stop-after-init
    ```
 
 2. Configure Lark API credentials in Odoo Settings:

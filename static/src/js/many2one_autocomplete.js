@@ -3,10 +3,8 @@
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
 import { _t } from "@web/core/l10n/translation";
-
-const { Component, onWillStart, useRef, onMounted } = owl;
-import { loadBundle } from "@web/core/assets";
-import { useEnv } from "@web/env";
+import { Component, onWillStart, useRef, onMounted, onError } from "@odoo/owl";
+import { browser } from "@web/core/browser/browser";
 
 /**
  * Custom Many2OneAutocomplete widget for Lark Tasklist selection
@@ -23,9 +21,24 @@ class Many2OneAutocomplete extends Component {
             loading: false,
         };
 
+        // Handle component errors
+        onError((error) => {
+            this.notification.add(error.message || "An error occurred", {
+                type: "danger",
+            });
+            browser.console.error(error);
+        });
+
         // Load initial data if needed
         onWillStart(async () => {
-            await this._loadSuggestions();
+            try {
+                await this._loadSuggestions();
+            } catch (error) {
+                this.notification.add(_t("Failed to load suggestions"), {
+                    type: "danger",
+                });
+                browser.console.error("Error loading suggestions:", error);
+            }
         });
     }
 
@@ -86,15 +99,20 @@ class Many2OneAutocomplete extends Component {
     }
 }
 
-// Register the component
-export const many2oneAutocomplete = {
+// Define the many2one autocomplete field
+const many2oneAutocomplete = {
     component: Many2OneAutocomplete,
     extractProps: ({ attrs }) => ({
-        resModel: attrs.options.model,
-        domain: attrs.options.domain || [],
-        onSelect: attrs.options.on_select || (() => {}),
+        'class': attrs.class,
+        'placeholder': attrs.placeholder || _t("Search..."),
     }),
 };
 
-// Register the component in the field registry
+// Register the component
 registry.category("fields").add("many2one_autocomplete", many2oneAutocomplete);
+
+// Export the component
+export { many2oneAutocomplete, Many2OneAutocomplete };
+
+// Default export for backward compatibility
+export default many2oneAutocomplete;

@@ -15,7 +15,7 @@
                         class="oe_highlight"
                         invisible="not lark_tasklist_id"
                         groups="base.group_user"/>
-                <button name="%(lark_project_sync.action_lark_link_project_wizard)d"
+                <button name="%(xcd_lark_project_sync.action_lark_link_project_wizard)d"
                         string="Link to Lark Tasklist"
                         type="action"
                         class="oe_highlight"
@@ -89,7 +89,7 @@
             
             <!-- Lark Task Form View -->
             <xpath expr="//field[@name='lark_task_ids']" position="attributes">
-                <attribute name="context">{'form_view_ref': 'lark_project_sync.view_lark_task_form'}</attribute>
+                <attribute name="context">{'form_view_ref': 'xcd_lark_project_sync.view_lark_task_form'}</attribute>
             </xpath>
             
             <!-- Add Lark Info to Project Settings -->
@@ -137,7 +137,7 @@
             </xpath>
         </field>
     </record>
-    <!-- Project Task Form View with Task Sequence -->
+    <!-- Project Task Form View with Task Sequence and Lark Integration -->
     <record id="view_project_task_form_inherit_lark" model="ir.ui.view">
         <field name="name">project.task.form.inherit.lark</field>
         <field name="model">project.task</field>
@@ -147,12 +147,58 @@
             <xpath expr="//field[@name='name']" position="before">
                 <field name="task_sequence" class="o_field_char o_field_inline" readonly="1" style="margin-right: 10px;"/>
             </xpath>
+            
+            <!-- Add Lark Task Details Page -->
+            <xpath expr="//notebook" position="inside">
+                <page string="Lark Task" name="lark_task_details" invisible="not lark_task_id or not lark_task_id">
+                    <group>
+                        <group>
+                            <field name="lark_task_id" readonly="1" string="Lark Task ID"/>
+                            <field name="lark_guid" readonly="1" string="Lark GUID"/>
+                            <field name="lark_status" readonly="1" string="Status"/>
+                            <field name="lark_assignee_id" readonly="1" string="Assignee"/>
+                        </group>
+                        <group>
+                            <field name="lark_created_at" readonly="1" string="Created At"/>
+                            <field name="lark_updated_at" readonly="1" string="Updated At"/>
+                            <field name="lark_completed_at" readonly="1" string="Completed At"/>
+                            <field name="lark_due_date" readonly="1" string="Due Date"/>
+                        </group>
+                    </group>
+                    <group>
+                        <group>
+                            <field name="lark_description" readonly="1" nolabel="1" class="mt16 o_readonly"/>
+                        </group>
+                    </group>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_open_lark_task" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-external-link"
+                                string="Open in Lark"
+                                invisible="not lark_url">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Open in Lark</span>
+                            </div>
+                        </button>
+                        <button name="action_sync_with_lark" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-refresh"
+                                string="Sync with Lark">
+                            <div class="o_stat_info">
+                                <span class="o_stat_text">Sync Now</span>
+                            </div>
+                        </button>
+                    </div>
+                </page>
+            </xpath>
         </field>
     </record>
     
     <!-- Project Task Tree View with Task Sequence -->
-    <record id="view_project_task_tree_inherit_lark" model="ir.ui.view">
-        <field name="name">project.task.tree.inherit.lark</field>
+    <record id="view_project_task_list_inherit_lark" model="ir.ui.view">
+        <field name="name">project.task.list.inherit.lark</field>
         <field name="model">project.task</field>
         <field name="inherit_id" ref="project.view_task_tree2"/>
         <field name="arch" type="xml">

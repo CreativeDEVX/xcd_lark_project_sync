@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <templates xml:space="preserve">
-    <t t-name="lark_project_sync.SystrayItem" owl="1">
+    <t t-name="xcd_lark_project_sync.SystrayItem" owl="1">
         <div class="o_mail_systray_item o_lark_sync_systray" t-ref="dropdown">
             <a href="#" class="o_lark_sync_icon" t-on-click="toggleDropdown" title="Lark Sync">
                 <i class="fa fa-refresh"></i>

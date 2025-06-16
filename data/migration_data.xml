@@ -5,6 +5,6 @@
         <function
             model="ir.model.data"
             name="_update_module_version"
-            eval="['lark_project_sync', '18.0.1.0.0']"/>
+            eval="['xcd_lark_project_sync', '18.0.1.0.0']"/>
     </data>
 </odoo>

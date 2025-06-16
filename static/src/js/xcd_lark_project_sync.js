@@ -1,9 +1,10 @@
-/** @odoo-module alias=lark_project_sync.systray **/
+/** @odoo-module */
 
 import { registry } from "@web/core/registry";
 import { useService } from "@web/core/utils/hooks";
-import { Component, useState, useRef, onMounted, xml } from "@odoo/owl";
-import { useErrorHandlers } from "@web/core/errors/error_handler_hook";
+import { Component, useState, useRef, onMounted, xml, onError } from "@odoo/owl";
+import { _t } from "@web/core/l10n/translation";
+import { browser } from "@web/core/browser/browser";
 
 class LarkProjectSyncSystray extends Component {
     static template = xml`
@@ -48,6 +49,17 @@ class LarkProjectSyncSystray extends Component {
             logMessages: []
         });
         this.dropdownRef = useRef("dropdown");
+        this.notification = useService("notification");
+        this.action = useService("action");
+        this.rpc = useService("rpc");
+        
+        // Handle component errors
+        onError((error) => {
+            this.notification.add(error.message || "An error occurred", {
+                type: "danger",
+            });
+            browser.console.error(error);
+        });
         
         // Initialize services in setup
         this.rpc = useService("rpc");
@@ -113,7 +125,7 @@ class LarkProjectSyncSystray extends Component {
         
         try {
             this.log("Initiating RPC call to sync endpoint", 'debug');
-            const result = await this.safeRPC.route("/lark_project_sync/sync", {});
+            const result = await this.safeRPC.route("/xcd_lark_project_sync/sync", {});
             
             const duration = (new Date() - startTime) / 1000;
             const successMsg = `Synchronization completed successfully in ${duration.toFixed(2)} seconds`;
@@ -150,10 +162,19 @@ class LarkProjectSyncSystray extends Component {
     }
 }
 
-// Register the systray item
-export const systrayItem = {
+// Define the systray item
+const systrayItem = {
     Component: LarkProjectSyncSystray,
 };
 
-// Register the component in the systray category
-registry.category("systray").add("lark_project_sync.systray_item", systrayItem, { sequence: 100 });
+// Register the systray item
+registry.category("systray").add("xcd_lark_project_sync.systray", systrayItem);
+
+// Export the component and systray item
+export { 
+    LarkProjectSyncSystray,
+    systrayItem
+};
+
+// Default export for backward compatibility
+export default systrayItem;

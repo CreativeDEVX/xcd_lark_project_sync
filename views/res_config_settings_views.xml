@@ -8,8 +8,8 @@
         <field name="priority" eval="50"/>
         <field name="arch" type="xml">
             <xpath expr="//app[@name='general_settings']" position="after">
-                <app data-string="Lark" string="Lark" name="lark_settings" logo="/lark_project_sync/static/description/icon.png">
-                    <div class="app_settings_block" data-key="lark_project_sync">
+                <app data-string="Lark" string="Lark" name="lark_settings" logo="/xcd_lark_project_sync/static/description/icon.png">
+                    <div class="app_settings_block" data-key="xcd_lark_project_sync">
                         <h2>Lark Integration</h2>
                     <div class="row mt16">
                         <div class="col-12 col-lg-6">
@@ -102,7 +102,7 @@
         <field name="view_id" ref="res_config_settings_view_form"/>
         <field name="context">
             {
-                'module': 'lark_project_sync',
+                'module': 'xcd_lark_project_sync',
                 'default_reset': True
             }
         </field>

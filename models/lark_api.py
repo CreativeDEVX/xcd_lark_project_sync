@@ -34,6 +34,8 @@ class LarkAPI(models.Model):
     authorization_code = fields.Char(string="Authorization Code")
     refresh_token = fields.Char(string="Refresh Token")
     oauth_state = fields.Char(string="OAuth State", readonly=True)
+    default_project_id = fields.Many2one('project.project', string='Default Project', required=True,
+        help='Default project to assign to tasks that are not associated with any tasklist')
 
     @api.depends('token_expire')
     def _compute_token_remaining_time(self):
@@ -409,7 +411,14 @@ class LarkAPI(models.Model):
         }
         
         try:
-            projects = self.env['project.project'].search([('lark_id', '!=', False)])
+            # Get all projects, including the default one if specified
+            domain = [('lark_id', '!=', False)]
+            if self.default_project_id and self.default_project_id.id not in [p.id for p in self.env['project.project'].search(domain)]:
+                # Include the default project in the sync even if it's not linked to a Lark tasklist
+                domain = ['|', ('id', '=', self.default_project_id.id)] + domain
+                _logger.info("Including default project in sync: %s", self.default_project_id.name)
+                
+            projects = self.env['project.project'].search(domain)
             if not projects:
                 error_msg = "No Lark-linked projects found in Odoo. Please sync projects or sections first."
                 _logger.warning("\n=== %s ===\n", error_msg)
@@ -481,6 +490,27 @@ class LarkAPI(models.Model):
                     _logger.info("Successfully processed %d/%d tasks for project '%s' in %.2f seconds\n", 
                                tasks_processed, len(tasks_data) if tasks_data else 0, 
                                project.name, project_duration)
+                    
+                    # Handle tasks without a tasklist if this is the default project
+                    if self.default_project_id and project.id == self.default_project_id.id:
+                        _logger.info("Checking for tasks without a tasklist...")
+                        try:
+                            # Get all tasks without a tasklist
+                            url = "https://open.larksuite.com/open-apis/task/v2/tasks"
+                            params = {
+                                'page_size': 100,
+                                'completed': False,  # Only get active tasks
+                                'tasklist_guid': 'none'  # Get tasks without a tasklist
+                            }
+                            tasks_without_tasklist = self._get_paginated_results(url, params)
+                            
+                            if tasks_without_tasklist:
+                                _logger.info("Found %d tasks without a tasklist", len(tasks_without_tasklist))
+                                tasks_processed += self._process_task_data(tasks_without_tasklist, project.id)
+                                tasks_processed_total += len(tasks_without_tasklist)
+                                _logger.info("Processed %d tasks without a tasklist", len(tasks_without_tasklist))
+                        except Exception as e:
+                            _logger.error("Error processing tasks without tasklist: %s", str(e), exc_info=True)
                     
                     # Log successful project sync
                     project_log_vals.update({
@@ -632,7 +662,7 @@ class LarkAPI(models.Model):
             _logger.error("Error logging task data: %s", str(e), exc_info=True)
     
     def _process_task_data(self, tasks_data, project_id):
-        """Helper to process a list of Lark task data and sync them to a specific Odoo project.
+        """Helper to process a list of Lark task data and sync them to lark.task model.
         
         Args:
             tasks_data (list): List of task dictionaries from Lark API
@@ -644,7 +674,7 @@ class LarkAPI(models.Model):
         _logger.info("=== PROCESSING %d TASKS FOR PROJECT %s ===", 
                     len(tasks_data) if tasks_data else 0, project_id)
         
-        Task = self.env['project.task']
+        LarkTask = self.env['lark.task']
         Project = self.env['project.project']
         tasks_synced = 0
         
@@ -655,10 +685,13 @@ class LarkAPI(models.Model):
             return 0
             
         if not project.lark_id:
-            _logger.warning("Project %s is not linked to a Lark tasklist. Skipping task sync.", project.name)
-            return 0
+            _logger.warning("Project %s is not linked to a Lark tasklist. Syncing to default project.", project.name)
+            if not self.default_project_id:
+                _logger.error("No default project set. Cannot sync tasks without a project.")
+                return 0
+            project = self.default_project_id
             
-        _logger.info("Project '%s' is linked to Lark tasklist: %s", project.name, project.lark_id)
+        _logger.info("Syncing tasks to project '%s' (ID: %s)", project.name, project.id)
             
         for idx, task_data in enumerate(tasks_data or [], 1):
             # Use ID if available, otherwise use GUID
@@ -674,9 +707,9 @@ class LarkAPI(models.Model):
                 # Log task data structure for debugging
                 self._log_task_data(task_data, idx)
                 
-                # Try to find existing task by lark_id
-                task = Task.search([('lark_id', '=', task_id)], limit=1)
-                _logger.debug("Found existing task: %s", task.id if task else 'None')
+                # Try to find existing lark.task by lark_id
+                lark_task = LarkTask.search([('lark_id', '=', task_id)], limit=1)
+                _logger.debug("Found existing lark.task: %s", lark_task.id if lark_task else 'None')
                 
                 # Prepare task values with error handling
                 due_date = None
@@ -695,6 +728,14 @@ class LarkAPI(models.Model):
                 # Get the Odoo user ID if assignee exists
                 odoo_user_id = self._find_odoo_user_id(task_data.get('assignee_id'))
                 
+                # Map Lark status to lark.task status
+                status_map = {
+                    'completed': 'done',
+                    'in_progress': 'in_progress',
+                    'archived': 'archived'
+                }
+                status = status_map.get(task_data.get('status', 'todo').lower(), 'todo')
+                
                 values = {
                     'project_id': project_id,
                     'name': task_name,
@@ -702,48 +743,47 @@ class LarkAPI(models.Model):
                     'lark_id': task_id,
                     'lark_guid': task_data.get('guid'),
                     'lark_etag': task_data.get('etag'),
-                    'lark_updated': fields.Datetime.now(),
-                    'date_deadline': due_date or False,
-                    'user_ids': [(6, 0, [odoo_user_id])] if odoo_user_id else False,
-                    'stage_id': self._get_task_stage_id(project_id, is_completed),
-                    'date_last_stage_update': fields.Datetime.now() if is_completed else False,
+                    'due_date': due_date or False,
+                    'assignee_id': odoo_user_id or False,
+                    'status': status,
+                    'json_data': json.dumps(task_data, indent=2) if task_data else '{}',
                 }
                 
                 # Log values except description to keep logs clean
                 log_values = {k: v for k, v in values.items() 
-                             if not k.startswith('description')}
+                             if not k.startswith(('description', 'json_data'))}
                 _logger.debug("Task values: %s", log_values)
                 
                 # Handle parent task if exists
                 parent_id = task_data.get('parent_id')
                 if parent_id:
-                    parent_task = Task.search([('lark_id', '=', parent_id)], limit=1)
+                    parent_task = LarkTask.search([('lark_id', '=', parent_id)], limit=1)
                     if parent_task:
                         values['parent_id'] = parent_task.id
                         _logger.debug("Linked to parent task ID: %s", parent_task.id)
                 
                 try:
-                    if task:
-                        # Update existing task
-                        task.write(values)
-                        _logger.info("Updated task '%s' (Lark ID: %s) in project '%s'", 
+                    if lark_task:
+                        # Update existing lark.task
+                        lark_task.write(values)
+                        _logger.info("Updated lark.task '%s' (Lark ID: %s) in project '%s'", 
                                    task_name, task_id, project.name)
                     else:
-                        # Create new task
-                        task = Task.create(values)
-                        _logger.info("Created new task '%s' (Lark ID: %s) in project '%s' (Odoo ID: %s)", 
-                                   task_name, task_id, project.name, task.id)
+                        # Create new lark.task
+                        lark_task = LarkTask.create(values)
+                        _logger.info("Created new lark.task '%s' (Lark ID: %s) in project '%s' (Odoo ID: %s)", 
+                                   task_name, task_id, project.name, lark_task.id)
                     
                     tasks_synced += 1
                     
                 except Exception as e:
-                    _logger.error("Error saving task %s (%s): %s", 
+                    _logger.error("Error saving lark.task %s (%s): %s", 
                                  task_name, task_id, str(e), exc_info=True)
                     continue
                 
             except Exception as e:
                 task_id_str = str(task_id) if 'task_id' in locals() else 'unknown'
-                _logger.error("Error syncing task %s: %s", task_id_str, str(e), exc_info=True)
+                _logger.error("Error syncing lark.task %s: %s", task_id_str, str(e), exc_info=True)
                 continue
                 
         success_rate = (tasks_synced / len(tasks_data) * 100) if tasks_data else 0
@@ -759,42 +799,105 @@ class LarkAPI(models.Model):
         """Get all tasks for a given tasklist using the Lark API.
         
         Args:
-            tasklist_guid (str): The GUID of the tasklist to fetch tasks from
+            tasklist_guid (str): The GUID of the tasklist to fetch tasks from.
+                             Use 'none' to get tasks not in any tasklist.
             
         Returns:
-            list: List of task dictionaries with required fields
+            list: List of task dictionaries with required fields for lark.task model
         """
         _logger.info("=== FETCHING TASKS FOR TASKLIST: %s ===", tasklist_guid)
-        url = f"https://open.larksuite.com/open-apis/task/v2/tasklists/{tasklist_guid}/tasks"
-        _logger.info("Requesting tasks from URL: %s", url)
+        
+        # If tasklist_guid is 'none', fetch tasks without a tasklist
+        if tasklist_guid == 'none':
+            url = "https://open.larksuite.com/open-apis/task/v2/tasks"
+            params = {
+                'page_size': 100,
+                'completed': False,
+                'tasklist_guid': 'none'  # This gets tasks not in any tasklist
+            }
+        else:
+            url = f"https://open.larksuite.com/open-apis/task/v2/tasklists/{tasklist_guid}/tasks"
+            params = {'page_size': 100}
+            
+        _logger.info("Requesting tasks from URL: %s with params: %s", url, params)
         
         try:
             # Get paginated results
-            tasks = self._get_paginated_results(url, {'page_size': 100})
+            tasks = self._get_paginated_results(url, params)
             _logger.info("Retrieved %d tasks from API", len(tasks) if tasks else 0)
             
             if not tasks:
                 _logger.warning("No tasks returned from API for tasklist %s", tasklist_guid)
                 return []
                 
-            # Log first task as sample
-            if tasks:
-                _logger.info("Sample task data (first task): %s", json.dumps(tasks[0], indent=2, default=str))
-                
-                # Check for required fields
-                for i, task in enumerate(tasks, 1):
-                    if not task.get('id'):
-                        _logger.warning("Task at index %d is missing 'id' field: %s", i, task)
-                    if not task.get('summary'):
-                        _logger.warning("Task at index %d is missing 'summary' field: %s", i, task)
+            # Process tasks to include all required fields for lark.task model
+            processed_tasks = []
+            for task in tasks:
+                try:
+                    # Extract task data
+                    task_id = task.get('id') or task.get('guid')
+                    if not task_id:
+                        _logger.warning("Skipping task with no ID or GUID: %s", task)
+                        continue
+                        
+                    # Get assignee if exists
+                    assignee_id = None
+                    if isinstance(task.get('assignee'), dict):
+                        assignee_id = task['assignee'].get('id')
+                    
+                    # Get due date if exists
+                    due = None
+                    if isinstance(task.get('due'), dict):
+                        due = task['due']
+                    
+                    processed_task = {
+                        'id': task_id,
+                        'guid': task.get('guid'),
+                        'summary': task.get('summary', 'Unnamed Task'),
+                        'description': task.get('description', ''),
+                        'due': due,
+                        'completed': task.get('completed', False),
+                        'status': task.get('status', 'todo'),
+                        'assignee_id': assignee_id,
+                        'parent_id': task.get('parent_id'),
+                        'etag': task.get('etag'),
+                        'custom_fields': task.get('custom_fields', []),
+                        'tasklist_guid': tasklist_guid,
+                        'created_at': task.get('created_at'),
+                        'updated_at': task.get('updated_at'),
+                        'start': task.get('start'),
+                        'source': task.get('source'),
+                        'subtask_count': task.get('subtask_count', 0),
+                        'is_milestone': task.get('is_milestone', False),
+                        'origin': task.get('origin', {})
+                    }
+                    
+                    # Add custom fields if they exist
+                    if task.get('custom_fields'):
+                        for field in task['custom_fields']:
+                            field_name = field.get('name', '').lower().replace(' ', '_')
+                            if field_name:
+                                processed_task[f'custom_{field_name}'] = field.get('value')
+                    
+                    processed_tasks.append(processed_task)
+                    
+                except Exception as e:
+                    _logger.error("Error processing task data: %s. Task: %s", str(e), task, exc_info=True)
+                    continue
             
-            return tasks
+            _logger.info("Successfully processed %d tasks for tasklist %s", 
+                        len(processed_tasks), tasklist_guid)
+            
+            # Log first task as sample
+            if processed_tasks:
+                _logger.info("Sample processed task data (first task): %s", 
+                            json.dumps(processed_tasks[0], indent=2, default=str))
+            
+            return processed_tasks
             
         except Exception as e:
             _logger.error("Error fetching tasks for tasklist %s: %s", tasklist_guid, str(e), exc_info=True)
             return []
-            
-        return tasks
 
     def _find_odoo_user_id(self, lark_user_id):
         """Find Odoo user ID from Lark user ID"""

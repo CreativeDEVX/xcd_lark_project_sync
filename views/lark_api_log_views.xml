@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
     <!-- API Log List View -->
-    <record id="view_lark_api_log_tree" model="ir.ui.view">
+    <record id="view_lark_api_log_list" model="ir.ui.view">
         <field name="name">lark.api.log.tree</field>
         <field name="model">lark.api.log</field>
         <field name="arch" type="xml">
