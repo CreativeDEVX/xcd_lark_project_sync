@@ -1,6 +1,7 @@
 {
     "name": "Lark Project Sync",
-    "version": "18.0.1.1.0",
+    "version": "18.0.1.1.3",
+    "post_init_hook": "post_init_hook",
     "summary": "Synchronize Odoo Projects with Lark Tasks",
     "description": """
         This module integrates Odoo Projects with Lark Tasks, allowing you to:
@@ -31,6 +32,7 @@
         'views/project_views.xml',
         'views/lark_tasklist_views.xml',
         'views/lark_task_views.xml',
+        'views/lark_api_log_views.xml',
         'views/lark_menus.xml',
         'views/assets.xml',
         

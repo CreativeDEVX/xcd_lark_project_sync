@@ -102,6 +102,12 @@
                                 </group>
                             </group>
                         </page>
+                        <page string="Raw JSON Data" invisible="not lark_id">
+                            <div class="alert alert-info" style="margin-bottom: 16px;">
+                                <strong>Note:</strong> This is the raw JSON data received from the Lark API.
+                            </div>
+                            <field name="json_data" nolabel="1" readonly="1" class="o_code_view"/>
+                        </page>
                     </notebook>
                 </sheet>
                 <div class="oe_chatter">
@@ -153,12 +159,15 @@
         <field name="name">Lark Tasks</field>
         <field name="res_model">lark.task</field>
         <field name="view_mode">list,kanban,form</field>
+        <field name="view_id" ref="view_lark_task_tree"/>
         <field name="search_view_id" ref="view_lark_task_search"/>
+        <field name="context">{"search_default_my_tasks": 1, "search_default_todo": 1}</field>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
-                No Lark tasks found. Let's create one!
+                No Lark tasks found. Let's create one or sync from Lark!
             </p>
         </field>
+        <field name="domain">[]</field>
     </record>
 
     <data noupdate="1">

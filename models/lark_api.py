@@ -1,10 +1,13 @@
-import requests
-import logging
-from datetime import datetime, timedelta
-from odoo import models, fields, api, _
-from odoo.exceptions import UserError
 import json
-from odoo import http
+import logging
+import time
+import traceback
+from datetime import datetime, timedelta
+
+import requests
+from odoo import _, api, fields, models, http
+from odoo.exceptions import UserError, ValidationError
+from odoo.tools import DEFAULT_SERVER_DATETIME_FORMAT as DATETIME_FORMAT
 
 _logger = logging.getLogger(__name__)
 
@@ -393,47 +396,215 @@ class LarkAPI(models.Model):
     def sync_tasks_from_lark(self):
         """Sync tasks from Lark to Odoo for all linked projects."""
         self.ensure_one()
-        _logger.info("Starting full task sync from Lark.")
+        _logger.info("\n=== STARTING FULL TASK SYNC FROM LARK ===\n")
+        start_time = fields.Datetime.now()
+        
+        # Main log entry for the overall sync operation
+        main_log_vals = {
+            'name': 'Started: Sync Tasks from Lark',
+            'api_link': '#',
+            'related_model': 'project.project',
+            'request_method': 'sync_tasks_from_lark',
+            'response_type': 'success',
+        }
         
         try:
             projects = self.env['project.project'].search([('lark_id', '!=', False)])
             if not projects:
-                raise UserError(_("No Lark-linked projects found in Odoo. Please sync projects or sections first."))
+                error_msg = "No Lark-linked projects found in Odoo. Please sync projects or sections first."
+                _logger.warning("\n=== %s ===\n", error_msg)
+                main_log_vals.update({
+                    'name': f"Failed: {error_msg}",
+                    'response_type': 'fail',
+                    'response_data': json.dumps({'error': error_msg}, indent=2)
+                })
+                self.env['lark.api.log'].create(main_log_vals)
+                raise UserError(_(error_msg))
                 
+            # Create the main log entry for the sync operation
+            main_log = self.env['lark.api.log'].create(main_log_vals)
+                
+            _logger.info("Found %d Lark-linked projects to process.", len(projects))
             tasks_synced_total = 0
+            tasks_processed_total = 0
+            project_errors = []
             
             for project in projects:
+                project_start_time = fields.Datetime.now()
+                project_log_vals = {
+                    'name': f"Sync tasks for project: {project.name}",
+                    'api_link': '#',
+                    'related_model': 'project.task',  # Using project.task for individual task syncs
+                    'request_method': 'sync_project_tasks',
+                    'response_type': 'success',
+                    'parent_id': main_log.id,  # Link to the main sync log
+                }
+                
                 try:
+                    _logger.info("\n=== PROCESSING PROJECT: %s (Lark ID: %s) ===", 
+                               project.name, project.lark_id)
                     tasks_data = []
+                    
                     if hasattr(project, 'lark_parent_tasklist_guid') and project.lark_parent_tasklist_guid:
-                        # Project is a Lark Section.
-                        _logger.info(f"Fetching tasks for SECTION project '{project.name}' (ID: {project.lark_id})")
+                        # Project is a Lark Section
+                        _logger.info("Project is a Lark Section")
                         url = f"https://open.larksuite.com/open-apis/task/v2/sections/{project.lark_id}/tasks"
+                        _logger.info("Fetching tasks from section URL: %s", url)
+                        project_log_vals.update({
+                            'request_param': json.dumps({
+                                'section_id': project.lark_id,
+                                'project_id': project.id,
+                                'project_name': project.name
+                            }, indent=2)
+                        })
                         tasks_data = self._get_paginated_results(url, {'page_size': 100})
                     else:
-                        # Project is a Lark Tasklist.
-                        _logger.info(f"Fetching tasks for TASKLIST project '{project.name}' (ID: {project.lark_id})")
+                        # Project is a Lark Tasklist
+                        _logger.info("Project is a Lark Tasklist")
+                        project_log_vals.update({
+                            'request_param': json.dumps({
+                                'tasklist_id': project.lark_id,
+                                'project_id': project.id,
+                                'project_name': project.name
+                            }, indent=2)
+                        })
                         tasks_data = self._get_all_tasks_for_project(project.lark_id)
+                    
+                    _logger.info("Found %d tasks for project '%s'", 
+                               len(tasks_data) if tasks_data else 0, project.name)
                     
                     tasks_processed = self._process_task_data(tasks_data, project.id)
                     tasks_synced_total += tasks_processed
-
+                    tasks_processed_total += len(tasks_data) if tasks_data else 0
+                    
+                    project_duration = (fields.Datetime.now() - project_start_time).total_seconds()
+                    _logger.info("Successfully processed %d/%d tasks for project '%s' in %.2f seconds\n", 
+                               tasks_processed, len(tasks_data) if tasks_data else 0, 
+                               project.name, project_duration)
+                    
+                    # Log successful project sync
+                    project_log_vals.update({
+                        'response_data': json.dumps({
+                            'tasks_found': len(tasks_data) if tasks_data else 0,
+                            'tasks_processed': tasks_processed,
+                            'duration_seconds': project_duration,
+                            'status': 'success'
+                        }, indent=2)
+                    })
+                    
                 except Exception as e:
-                    _logger.error(f"Failed to sync tasks for project '{project.name}' (Lark ID: {project.lark_id}). Error: {e}", exc_info=True)
-                    continue
+                    error_msg = f"Failed to sync tasks for project '{project.name}' (Lark ID: {project.lark_id})"
+                    _logger.error("\n=== %s ===\nError: %s\n", error_msg, str(e), exc_info=True)
+                    project_errors.append({
+                        'project': project.name,
+                        'error': str(e)
+                    })
+                    
+                    # Log failed project sync
+                    project_log_vals.update({
+                        'name': f"Failed: Sync tasks for project {project.name}",
+                        'response_type': 'fail',
+                        'response_data': json.dumps({
+                            'error': str(e),
+                            'project': project.name,
+                            'lark_id': project.lark_id,
+                            'status': 'failed',
+                            'traceback': traceback.format_exc()
+                        }, indent=2)
+                    })
+                
+                # Create log entry for this project sync
+                self.env['lark.api.log'].create(project_log_vals)
+                
+                # Small delay between project syncs to avoid rate limiting
+                time.sleep(1)
 
+            # Calculate sync duration
+            end_time = fields.Datetime.now()
+            duration = (end_time - start_time).total_seconds()
+            
+            # Prepare final response data
+            response_data = {
+                'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'end_time': end_time.strftime('%Y-%m-%d %H:%M:%S'),
+                'duration_seconds': duration,
+                'projects_processed': len(projects),
+                'tasks_processed': tasks_processed_total,
+                'tasks_synced': tasks_synced_total,
+                'success_rate': (tasks_synced_total / tasks_processed_total * 100) if tasks_processed_total > 0 else 0,
+                'failed': tasks_processed_total - tasks_synced_total,
+                'project_errors': project_errors
+            }
+            
+            # Update main log entry with final results
+            main_log.write({
+                'name': f"Completed: Sync Tasks from Lark - {tasks_synced_total} tasks synced",
+                'response_data': json.dumps(response_data, indent=2),
+                'response_type': 'success' if not project_errors else 'fail'
+            })
+            
+            # Log final summary
+            _logger.info("\n=== TASK SYNC COMPLETED ===")
+            _logger.info("Start Time: %s", start_time)
+            _logger.info("End Time:   %s", end_time)
+            _logger.info("Duration:   %.2f seconds", duration)
+            _logger.info("Projects Processed: %d", len(projects))
+            _logger.info("Total Tasks Processed: %d", tasks_processed_total)
+            _logger.info("Total Tasks Synced:    %d (%.1f%%)", 
+                        tasks_synced_total, 
+                        (tasks_synced_total / tasks_processed_total * 100) if tasks_processed_total > 0 else 0)
+            _logger.info("Failed:               %d\n", tasks_processed_total - tasks_synced_total)
+            
+            # Update the main log entry with final status
+            if 'main_log' in locals() and main_log:
+                main_log.write({
+                    'name': f"Completed: Sync Tasks from Lark - {tasks_synced_total} tasks synced",
+                    'response_data': json.dumps({
+                        'start_time': start_time.strftime('%Y-%m-%d %H:%M:%S'),
+                        'end_time': fields.Datetime.now().strftime('%Y-%m-%d %H:%M:%S'),
+                        'duration_seconds': (fields.Datetime.now() - start_time).total_seconds(),
+                        'projects_processed': len(projects),
+                        'tasks_processed': tasks_processed_total,
+                        'tasks_synced': tasks_synced_total,
+                        'success_rate': (tasks_synced_total / tasks_processed_total * 100) if tasks_processed_total > 0 else 0,
+                        'failed': tasks_processed_total - tasks_synced_total,
+                        'project_errors': project_errors
+                    }, indent=2),
+                    'response_type': 'success' if not project_errors else 'fail'
+                })
+            
             return {
                 'type': 'ir.actions.client',
                 'tag': 'display_notification',
                 'params': {
                     'title': _('Success'),
-                    'message': _('Total of %s tasks synchronized across all projects.') % tasks_synced_total,
+                    'message': _('Successfully synchronized %(count)d tasks across %(projects)d projects.') % {
+                        'count': tasks_synced_total,
+                        'projects': len(projects)
+                    },
                     'type': 'success',
-                    'sticky': False,
+                    'sticky': True,
                 }
             }
+            
         except Exception as e:
-            _logger.error("General error in sync_tasks_from_lark: %s", str(e), exc_info=True)
+            error_msg = f"General error in sync_tasks_from_lark: {str(e)}"
+            _logger.error("\n=== %s ===\n", error_msg, exc_info=True)
+            
+            # Update log entry with error details if main_log exists
+            if 'main_log' in locals() and main_log:
+                main_log.write({
+                    'name': f"Failed: Sync Tasks from Lark - {str(e)[:100]}...",
+                    'response_type': 'fail',
+                    'response_data': json.dumps({
+                        'error': str(e),
+                        'traceback': traceback.format_exc(),
+                        'projects_processed': len(projects) if 'projects' in locals() else 0,
+                        'tasks_processed': tasks_processed_total if 'tasks_processed_total' in locals() else 0,
+                        'tasks_synced': tasks_synced_total if 'tasks_synced_total' in locals() else 0
+                    }, indent=2)
+                })
+            
             raise UserError(_("Error during task sync: %s") % str(e))
             
     

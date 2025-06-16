@@ -23,6 +23,13 @@ class LarkTask(models.Model):
         index=True,
         help='Auto-generated task sequence number'
     )
+    
+    # Raw JSON data from Lark API
+    json_data = fields.Text(
+        string='Raw JSON Data',
+        readonly=True,
+        help='Raw JSON data received from the Lark API for debugging purposes'
+    )
     name = fields.Char(
         string='Task Name', 
         required=True, 

@@ -1,0 +1,102 @@
+<?xml version="1.0" encoding="utf-8"?>
+<odoo>
+    <!-- API Log List View -->
+    <record id="view_lark_api_log_tree" model="ir.ui.view">
+        <field name="name">lark.api.log.tree</field>
+        <field name="model">lark.api.log</field>
+        <field name="arch" type="xml">
+            <list string="Lark API Logs" decoration-success="response_type == 'success'" decoration-danger="response_type == 'fail'">
+                <field name="name" string="Description"/>
+                <field name="create_date" string="Date" readonly="1"/>
+                <field name="response_type" widget="selection"/>
+                <field name="related_model" string="Model"/>
+                <field name="request_method" string="Method"/>
+            </list>
+        </field>
+    </record>
+
+    <!-- API Log Search View -->
+    <record id="view_lark_api_log_search" model="ir.ui.view">
+        <field name="name">lark.api.log.search</field>
+        <field name="model">lark.api.log</field>
+        <field name="arch" type="xml">
+            <search>
+                <field name="name" string="Description"/>
+                <field name="related_model" string="Model"/>
+                <field name="request_method" string="Method"/>
+                <filter string="Success" name="success" domain="[('response_type', '=', 'success')]"/>
+                <filter string="Failed" name="failed" domain="[('response_type', '=', 'fail')]"/>
+                <group expand="0" string="Group By">
+                    <filter string="Status" name="group_by_status" context="{'group_by':'response_type'}"/>
+                    <filter string="Model" name="group_by_model" context="{'group_by':'related_model'}"/>
+                    <filter string="Date" name="group_by_date" context="{'group_by':'create_date:day'}"/>
+                </group>
+            </search>
+        </field>
+    </record>
+
+    <!-- API Log Form View -->
+    <record id="view_lark_api_log_form" model="ir.ui.view">
+        <field name="name">lark.api.log.form</field>
+        <field name="model">lark.api.log</field>
+        <field name="arch" type="xml">
+            <form string="Lark API Log">
+                <sheet>
+                    <div class="oe_button_box" name="button_box">
+                        <button name="action_view_logs" 
+                                type="object" 
+                                class="oe_stat_button"
+                                icon="fa-list">
+                            <field name="api_link" widget="url" string="View Logs" nolabel="1"/>
+                        </button>
+                    </div>
+                    <group>
+                        <group>
+                            <field name="name" string="Description"/>
+                            <field name="related_model" string="Related Model"/>
+                            <field name="create_date" string="Date"/>
+                            <field name="response_type" widget="selection"/>
+                        </group>
+                        <group>
+                            <field name="api_link" string="API Link"/>
+                            <field name="request_method" string="Request Method"/>
+                        </group>
+                    </group>
+                    <notebook>
+                        <page string="Request">
+                            <field name="request_param" widget="json" options="{'mode': 'list'}" nolabel="1"/>
+                        </page>
+                        <page string="Response">
+                            <field name="response_data" widget="json" options="{'mode': 'list'}" nolabel="1"/>
+                        </page>
+                    </notebook>
+                </sheet>
+                <div class="oe_chatter">
+                    <field name="message_follower_ids" widget="mail_followers"/>
+                    <field name="activity_ids" widget="mail_activity"/>
+                    <field name="message_ids" widget="mail_thread"/>
+                </div>
+            </form>
+        </field>
+    </record>
+
+    <!-- Action and Menu Items -->
+    <record id="action_lark_api_log" model="ir.actions.act_window">
+        <field name="name">Lark API Logs</field>
+        <field name="res_model">lark.api.log</field>
+        <field name="view_mode">list,form</field>
+        <field name="search_view_id" ref="view_lark_api_log_search"/>
+        <field name="help" type="html">
+            <p class="o_view_nocontent_smiling_face">
+                No API logs found.
+            </p>
+        </field>
+    </record>
+
+    <!-- Menu Items -->
+    <menuitem id="menu_lark_api_log" 
+              name="API Logs" 
+              parent="menu_lark_root" 
+              action="action_lark_api_log"
+              sequence="100"/>
+</odoo>

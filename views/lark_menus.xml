@@ -9,20 +9,5 @@
             name="Tasks" 
             action="action_lark_task" 
             sequence="10"/>
-        
-        <!-- Configuration Submenu -->
-        <menuitem 
-            id="menu_lark_configuration" 
-            name="Configuration" 
-            sequence="100">
-            
-            <menuitem 
-                id="menu_lark_settings" 
-                name="Settings" 
-                action="lark_settings_action" 
-                sequence="10"/>
-        </menuitem>
-        
-        
     </menuitem>
 </odoo>
