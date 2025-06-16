@@ -191,20 +191,32 @@ class LarkAPI(models.Model):
             
             for tasklist in tasklists:
                 try:
-                    # Sync project
-                    project_domain = [('lark_id', '=', tasklist.get('id'))]
+                    guid = tasklist.get('id') or tasklist.get('guid')
+                    tasklist_name = tasklist.get('name', 'Unnamed Tasklist')
+                    
+                    # First try to find by lark_id
+                    project_domain = ['|', 
+                                   ('lark_id', '=', guid),
+                                   ('name', '=', tasklist_name)]
+                    
                     odoo_project = self.env['project.project'].search(project_domain, limit=1)
+                    
                     project_values = {
-                        'name': tasklist.get('name', 'Unnamed Tasklist'),
-                        'lark_id': tasklist.get('id'),
+                        'name': tasklist_name,
+                        'lark_id': guid,
                         'description': tasklist.get('description', ''),
                     }
+                    
                     if odoo_project:
+                        # If project found, update it
                         odoo_project.write(project_values)
                         projects_updated += 1
+                        _logger.info(f"Updated existing project: {tasklist_name} (Lark ID: {guid})")
                     else:
-                        self.env['project.project'].create(project_values)
+                        # If no project found, create a new one
+                        new_project = self.env['project.project'].create(project_values)
                         projects_created += 1
+                        _logger.info(f"Created new project: {tasklist_name} (Lark ID: {guid})")
 
                     # Also sync lark.tasklist view
                     guid = tasklist.get('id') or tasklist.get('guid')

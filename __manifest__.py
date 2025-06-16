@@ -15,9 +15,7 @@
     "assets": {
         "web.assets_backend": [
             "lark_project_sync/static/src/js/many2one_autocomplete.js",
-        ],
-        "web.assets_qweb": [
-            "lark_project_sync/static/src/xml/many2one_autocomplete.xml",
+            "lark_project_sync/static/src/xml/many2one_autocomplete.xml"
         ],
     },
     "installable": True,

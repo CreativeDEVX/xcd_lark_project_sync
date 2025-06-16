@@ -1,14 +1,4 @@
 <?xml version="1.0" encoding="utf-8"?>
 <odoo>
-    <template id="assets_backend" inherit_id="web.assets_backend" name="Lark Project Sync Backend Assets">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/lark_project_sync/static/src/js/many2one_autocomplete.js"/>
-        </xpath>
-    </template>
-    
-    <template id="assets_common" inherit_id="web.assets_common" name="Lark Project Sync Common Assets">
-        <xpath expr="." position="inside">
-            <script type="text/javascript" src="/lark_project_sync/static/src/js/many2one_autocomplete.js"/>
-        </xpath>
-    </template>
+    <!-- Asset declarations have been moved to __manifest__.py for Odoo 18.0+ compatibility -->
 </odoo>
