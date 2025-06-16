@@ -7,6 +7,7 @@
         <field name="arch" type="xml">
             <list string="Lark API Configurations">
                 <field name="app_id" string="Lark App ID"/>
+                <field name="name"/>
                 <field name="token_expire" string="Token Expiry"/>
             </list>
         </field>
@@ -35,6 +36,9 @@
                 </header>
                 <sheet>
                     <group>
+                        <group>
+                            <field name="name"/>
+                        </group>
                         <group>
                             <field name="app_id" string="Lark App ID"/>
                             <field name="app_secret" string="Lark App Secret" password="True"/>

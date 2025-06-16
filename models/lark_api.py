@@ -17,7 +17,9 @@ class LarkAPI(models.Model):
     _name = "lark.api"
     _description = "Lark API Integration"
     _inherit = ['mail.thread', 'mail.activity.mixin']
+    _rec_name = 'name'
 
+    name = fields.Char(string="Connection Name", required=True, default="Lark Connection", tracking=True)
     app_id = fields.Char(string="Lark App ID", required=True, default="cli_a7cfed7fdab8d003")
     app_secret = fields.Char(required=True, default="tOji58BRiUQEQFXAcU8xjdYbDHcRUY7t")
     user_access_token = fields.Char(string="User Access Token", required=True)

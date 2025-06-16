@@ -188,7 +188,7 @@
     <record id="action_lark_tasklist" model="ir.actions.act_window">
         <field name="name">Lark Tasklists</field>
         <field name="res_model">lark.tasklist</field>
-        <field name="view_mode">list,kanban,form</field>
+        <field name="view_mode">list,form</field>
         <field name="search_view_id" ref="view_lark_tasklist_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">
