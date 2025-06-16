@@ -105,14 +105,16 @@
         <field name="name">lark.tasklist.kanban</field>
         <field name="model">lark.tasklist</field>
         <field name="arch" type="xml">
-            <kanban default_group_by="is_linked">
+            <kanban default_group_by="has_projects" class="o_kanban_mobile">
                 <field name="id"/>
                 <field name="name"/>
                 <field name="lark_guid"/>
                 <field name="url"/>
-                <field name="is_linked"/>
+                <field name="is_linked" invisible="1"/>
                 <field name="member_count"/>
                 <field name="created_at"/>
+                <field name="updated_at"/>
+                <field name="creator_name"/>
                 
                 <templates>
                     <t t-name="kanban-box">
@@ -120,23 +122,61 @@
                             <div class="o_kanban_record_top mb8" name="div_top">
                                 <div class="o_kanban_record_headings">
                                     <field name="name" class="o_kanban_record_title"/>
+                                    <div class="o_kanban_record_subtitle">
+                                        <i class="fa fa-user-o mr-1" title="Creator"/>
+                                        <field name="creator_name"/>
+                                    </div>
                                 </div>
                                 <div class="o_kanban_record_bottom">
                                     <div class="oe_kanban_bottom_left">
-                                        <field name="member_count" widget="statinfo" class="mr4"/>
-                                        <i class="fa fa-users mr4"/>
+                                        <i class="fa fa-users mr-1" title="Members"/>
+                                        <field name="member_count" widget="statinfo"/>
                                     </div>
                                     <div class="oe_kanban_bottom_right">
+                                        <field name="has_projects" invisible="1"/>
                                         <field name="is_linked" invisible="1"/>
-                                        <span t-if="record.is_linked.value" class="badge badge-success">
-                                            <i class="fa fa-link"/> Linked
+                                        <span t-if="record.has_projects.raw_value" class="badge badge-success">
+                                            <i class="fa fa-link mr-1" title="Linked"/> Linked
                                         </span>
-                                        <span t-else="" class="badge badge-default">
-                                            <i class="fa fa-unlink"/> Not Linked
+                                        <span t-else="" class="badge badge-secondary">
+                                            <i class="fa fa-unlink mr-1" title="Not Linked"/> Not Linked
                                         </span>
                                     </div>
                                 </div>
+                                <div class="o_kanban_record_bottom mt-2">
+                                    <div class="text-muted small">
+                                        <i class="fa fa-clock-o mr-1" title="Updated"/>
+                                        <span>Updated: </span>
+                                        <field name="updated_at" widget="relative" class="text-muted small"/>
+                                    </div>
+                                </div>
                             </div>
+                        </div>
+                    </t>
+                    
+                    <t t-name="kanban-groupedby">
+                        <div class="o_kanban_group o_kanban_group_show_muted" t-att-data-id="groupedBy.id">
+                            <div class="o_kanban_header">
+                                <span class="o_kanban_header_title" t-esc="groupedBy.display_name"/>
+                                <t t-if="groupedBy.value">
+                                    <span class="badge badge-primary ml-2" t-esc="groupedBy.count"/>
+                                </t>
+                            </div>
+                            <t t-foreach="records" t-as="record" t-key="record.id">
+                                <t t-call="kanban-box">
+                                    <t t-set="record" t-value="record"/>
+                                </t>
+                            </t>
+                        </div>
+                    </t>
+                    
+                    <t t-name="kanban-ungrouped">
+                        <div class="d-flex flex-wrap">
+                            <t t-foreach="records" t-as="record" t-key="record.id">
+                                <t t-call="kanban-box">
+                                    <t t-set="record" t-value="record"/>
+                                </t>
+                            </t>
                         </div>
                     </t>
                 </templates>
@@ -148,7 +188,7 @@
     <record id="action_lark_tasklist" model="ir.actions.act_window">
         <field name="name">Lark Tasklists</field>
         <field name="res_model">lark.tasklist</field>
-        <field name="view_mode">kanban,tree,form</field>
+        <field name="view_mode">list,kanban,form</field>
         <field name="search_view_id" ref="view_lark_tasklist_search"/>
         <field name="help" type="html">
             <p class="o_view_nocontent_smiling_face">

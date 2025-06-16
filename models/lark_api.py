@@ -605,8 +605,14 @@ class LarkAPI(models.Model):
             'type': 'ir.actions.act_window',
             'name': 'Lark Tasklists',
             'res_model': 'lark.tasklist',
-            'view_mode': 'list,form',
+            'view_mode': 'kanban,list,form',
+            'views': [
+                (False, 'kanban'),
+                (False, 'list'),
+                (False, 'form'),
+            ],
             'target': 'current',
+            'context': {},
         }
 
     def sync_lark_tasklists(self):

@@ -2,48 +2,49 @@
 <templates xml:space="preserve">
     <t t-name="lark_project_sync.Many2OneAutocomplete" owl="1">
         <div class="o_many2one_autocomplete">
-        <div class="position-relative">
-            <!-- Search Input -->
-            <div class="input-group">
-                <input
-                    type="text"
-                    class="form-control o_input"
-                    t-att-placeholder="props.placeholder || _t('Search...')"
-                    t-model="state.searchValue"
-                    t-on-input="_onSearchInput"
-                />
-                <t t-if="state.loading">
-                    <span class="input-group-text">
-                        <i class="fa fa-spinner fa-spin"/>
-                    </span>
-                </t>
-            </div>
-
-            <!-- Suggestions Dropdown -->
-            <t t-if="state.suggestions.length > 0">
-                <div class="dropdown-menu show w-100" style="position: absolute; z-index: 1000;">
-                    <t t-foreach="state.suggestions" t-as="suggestion" t-key="suggestion.id">
-                        <a href="#" 
-                           class="dropdown-item" 
-                           t-on-click.prevent="() => this._onSelectSuggestion(suggestion)">
-                            <div class="d-flex justify-content-between align-items-center">
-                                <span t-esc="suggestion.name"/>
-                                <t t-if="suggestion.member_count">
-                                    <span class="badge bg-primary ms-2">
-                                        <i class="fa fa-users me-1"/>
-                                        <t t-esc="suggestion.member_count"/>
-                                    </span>
-                                </t>
-                            </div>
-                            <t t-if="suggestion.lark_guid">
-                                <small class="text-muted d-block">
-                                    <t t-esc="suggestion.lark_guid"/>
-                                </small>
-                            </t>
-                        </a>
+            <div class="position-relative">
+                <!-- Search Input -->
+                <div class="input-group">
+                    <input
+                        type="text"
+                        class="form-control o_input"
+                        t-att-placeholder="props.placeholder || _t('Search...')"
+                        t-model="state.searchValue"
+                        t-on-input="_onSearchInput"
+                    />
+                    <t t-if="state.loading">
+                        <span class="input-group-text">
+                            <i class="fa fa-spinner fa-spin"/>
+                        </span>
                     </t>
                 </div>
-            </t>
+
+                <!-- Suggestions Dropdown -->
+                <t t-if="state.suggestions.length > 0">
+                    <div class="dropdown-menu show w-100" style="position: absolute; z-index: 1000;">
+                        <t t-foreach="state.suggestions" t-as="suggestion" t-key="suggestion.id">
+                            <a href="#" 
+                               class="dropdown-item" 
+                               t-on-click.prevent="() => this._onSelectSuggestion(suggestion)">
+                                <div class="d-flex justify-content-between align-items-center">
+                                    <span t-esc="suggestion.name"/>
+                                    <t t-if="suggestion.member_count">
+                                        <span class="badge bg-primary ms-2">
+                                            <i class="fa fa-users me-1"/>
+                                            <t t-esc="suggestion.member_count"/>
+                                        </span>
+                                    </t>
+                                </div>
+                                <t t-if="suggestion.lark_guid">
+                                    <small class="text-muted d-block">
+                                        <t t-esc="suggestion.lark_guid"/>
+                                    </small>
+                                </t>
+                            </a>
+                        </t>
+                    </div>
+                </t>
+            </div>
         </div>
     </t>
 </templates>

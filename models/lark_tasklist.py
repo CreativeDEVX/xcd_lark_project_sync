@@ -33,6 +33,7 @@ class LarkTasklist(models.Model):
     
     # Relationships
     project_ids = fields.One2many('project.project', 'lark_tasklist_id', string="Linked Projects")
+    has_projects = fields.Boolean(string="Has Projects", compute='_compute_has_projects', store=True, index=True)
     
     _sql_constraints = [
         ('lark_guid_unique', 'UNIQUE(lark_guid)', 'Lark GUID must be unique!'),
@@ -72,9 +73,15 @@ class LarkTasklist(models.Model):
             else:
                 record.member_count = 0
     
+    @api.depends('project_ids')
+    def _compute_has_projects(self):
+        for record in self:
+            record.has_projects = bool(record.project_ids)
+    
+    @api.depends('has_projects')
     def _compute_is_linked(self):
         for record in self:
-            record.is_linked = bool(record.project_ids)
+            record.is_linked = record.has_projects
     
     def _search_is_linked(self, operator, value):
         if operator not in ('=', '!=', '<>'):
