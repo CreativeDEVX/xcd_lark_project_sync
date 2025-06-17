@@ -107,12 +107,12 @@ To manually sync tasks:
 ## Support
 
 For support, please contact:
-- Email: support@ycreativedev.co.th
-- Website: https://www.ycreativedev.co.th/support
+- Email: support@creativedev.co.th
+- Website: https://www.creativedev.co.th/support
 
 ## License
 
 This module is licensed under LGPL-3.
 
 ---
-*Developed by Your Company*
+*Developed by Your Creative Dev Co.,Ltd.*
